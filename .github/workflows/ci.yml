@@ -21,3 +21,4 @@ jobs:
           moon check --target all --deny-warn
           moon test --target all
           moon build --target all --deny-warn
+          bash scripts/demo.sh
