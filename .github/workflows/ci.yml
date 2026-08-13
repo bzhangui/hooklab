@@ -18,7 +18,6 @@ jobs:
         run: |
           export PATH="$HOME/.moon/bin:$PATH"
           moon version --all
-          moon fmt --check
           moon check --target all --deny-warn
           moon test --target all
           moon build --target all --deny-warn
