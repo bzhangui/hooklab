@@ -4,10 +4,6 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![MoonBit](https://img.shields.io/badge/MoonBit-JS%20%7C%20Wasm%20%7C%20Native-blue)](https://www.moonbitlang.com/)
 
-> **大赛申报入口：**[项目申报书](docs/PROJECT_PROPOSAL.md) · [报名检查表](docs/APPLICATION_CHECKLIST.md) · [开发路线](docs/ROADMAP.md) · [验收矩阵](docs/ACCEPTANCE.md) · [演示说明](docs/DEMO.md) · [AI/智能体协作](docs/AI_DEVELOPMENT.md)
-
-当前状态：公开 MVP 已可运行；申报后的生产级扩展范围以[开发路线](docs/ROADMAP.md)为准。参赛者公开身份为 [bzhangui](https://github.com/bzhangui)，真实姓名和联系方式仅在官方报名问卷中填写。
-
 HookLab 是一个用 MoonBit 编写的跨平台 Webhook 安全与可靠性交付工具箱。它把最容易出事故的环节——**原始负载验签、时间窗校验、防重放、幂等、路由、敏感字段脱敏、重试与离线诊断**——放进一条可测试的处理流水线。
 
 它既适合比赛演示，也解决真实工程问题：第三方回调“为什么验签失败”、同一事件“为什么执行两次”、失败请求“如何安全复现”、下游暂时不可用“如何重试而不制造重复副作用”。核心实现不依赖云服务，MoonBit 代码可以编译到 JS、Wasm、Wasm-GC 和 Native。
