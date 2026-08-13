@@ -1,0 +1,6 @@
+/_build/
+/target/
+/.mooncakes/
+diagnosis.html
+*.log
+.DS_Store

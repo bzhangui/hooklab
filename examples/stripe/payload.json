@@ -1,0 +1,12 @@
+{
+  "id": "evt_hooklab_test_001",
+  "object": "event",
+  "type": "payment_intent.succeeded",
+  "data": {
+    "object": {
+      "id": "pi_hooklab_test_001",
+      "amount": 2999,
+      "currency": "usd"
+    }
+  }
+}

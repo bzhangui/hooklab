@@ -1,0 +1,5 @@
+{
+  "event": "order.created",
+  "order_id": "order-hooklab-001",
+  "token": "example-value-that-will-be-redacted"
+}

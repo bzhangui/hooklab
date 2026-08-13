@@ -1,0 +1,15 @@
+import {
+  "hooklab/hooklab/hooklab/core",
+  "hooklab/hooklab/hooklab/crypto",
+  "hooklab/hooklab/hooklab/engine",
+  "hooklab/hooklab/hooklab/pipeline",
+  "hooklab/hooklab/hooklab/providers",
+  "hooklab/hooklab/hooklab/report",
+  "moonbitlang/core/env",
+  "moonbitlang/core/string",
+}
+
+options(
+  "is-main": true,
+  targets: { "io_js.mbt": [ "js" ], "io_stub.mbt": [ "not", "js" ] },
+)

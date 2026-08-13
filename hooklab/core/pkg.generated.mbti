@@ -1,0 +1,100 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "hooklab/hooklab/hooklab/core"
+
+import {
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn ascii_lower(String) -> String
+
+pub fn failure_code_name(FailureCode) -> String
+
+pub fn find_header(Array[Header], String) -> String?
+
+pub fn header(String, String) -> Header
+
+pub fn provider_name(Provider) -> String
+
+pub fn rejection(FailureCode, Stage, String, String) -> VerificationResult
+
+pub fn stage_name(Stage) -> String
+
+pub fn trim_ascii(String) -> String
+
+// Errors
+
+// Types and methods
+pub(all) enum FailureCode {
+  MissingSignature
+  MissingTimestamp
+  InvalidSignatureFormat
+  SignatureMismatch
+  TimestampExpired
+  TimestampInFuture
+  ReplayDetected
+  MissingDeliveryId
+  InvalidPayload
+  UnsupportedProvider
+} derive(Eq, @debug.Debug)
+
+pub(all) struct Header {
+  name : String
+  value : String
+} derive(Eq, @debug.Debug)
+
+pub(all) enum Provider {
+  GitHub
+  Stripe
+  Feishu
+  GenericHmac
+} derive(Eq, @debug.Debug)
+
+pub(all) enum Stage {
+  Input
+  Signature
+  Freshness
+  Idempotency
+  Routing
+  Delivery
+  Complete
+} derive(Eq, @debug.Debug)
+
+pub(all) struct VerificationFailure {
+  code : FailureCode
+  stage : Stage
+  message : String
+  suggestion : String
+} derive(Eq, @debug.Debug)
+
+pub(all) struct VerificationPolicy {
+  tolerance_seconds : Int64
+  reject_future_seconds : Int64
+  require_delivery_id : Bool
+} derive(Eq, @debug.Debug)
+pub fn VerificationPolicy::secure_default() -> Self
+
+pub(all) enum VerificationResult {
+  Verified(VerifiedEvent)
+  Rejected(VerificationFailure)
+} derive(Eq, @debug.Debug)
+
+pub(all) struct VerifiedEvent {
+  provider : Provider
+  event_type : String
+  delivery_id : String?
+  timestamp : Int64?
+  body : String
+} derive(Eq, @debug.Debug)
+
+pub(all) struct WebhookRequest {
+  provider : Provider
+  headers : Array[Header]
+  body : String
+  received_at : Int64
+} derive(Eq, @debug.Debug)
+
+// Type aliases
+
+// Traits
+

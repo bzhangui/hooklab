@@ -1,0 +1,24 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install MoonBit
+        run: curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash
+      - name: Validate
+        run: |
+          export PATH="$HOME/.moon/bin:$PATH"
+          moon version --all
+          moon fmt --check
+          moon check --target all --deny-warn
+          moon test --target all
+          moon build --target all --deny-warn

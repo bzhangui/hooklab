@@ -1,0 +1,14 @@
+{
+  "action": "opened",
+  "issue": {
+    "number": 42,
+    "title": "Make webhook delivery observable"
+  },
+  "repository": {
+    "full_name": "hooklab/demo"
+  },
+  "sender": {
+    "login": "octo-test",
+    "email": "must-not-appear@example.invalid"
+  }
+}

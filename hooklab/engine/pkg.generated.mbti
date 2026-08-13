@@ -1,0 +1,115 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "hooklab/hooklab/hooklab/engine"
+
+import {
+  "hooklab/hooklab/hooklab/core",
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn capture_fixture(@core.WebhookRequest, String, policy? : RedactionPolicy) -> ReplayFixture
+
+pub fn decide_delivery(RetryPolicy, Int, AttemptOutcome) -> DeliveryDecision
+
+pub fn redact_headers(Array[@core.Header], policy? : RedactionPolicy) -> Array[@core.Header]
+
+pub fn redact_json(String, policy? : RedactionPolicy) -> String
+
+pub fn replay_request(ReplayFixture, Int64) -> @core.WebhookRequest
+
+pub fn retry_delay(RetryPolicy, Int) -> Int64
+
+pub fn retry_schedule(RetryPolicy, Int64) -> Array[RetryStep]
+
+pub fn route(String, Array[RouteRule]) -> Array[RouteMatch]
+
+// Errors
+
+// Types and methods
+pub(all) enum AttemptOutcome {
+  Delivered(Int)
+  Retryable(Int, String)
+  Permanent(Int, String)
+  TransportFailure(String)
+} derive(Eq, @debug.Debug)
+
+pub(all) enum DeliveryDecision {
+  Success
+  RetryAfter(Int64)
+  DeadLetter(String)
+} derive(Eq, @debug.Debug)
+
+pub(all) enum IdempotencyDecision {
+  Accepted
+  Duplicate
+  InvalidKey
+} derive(Eq, @debug.Debug)
+
+pub(all) enum MatchOperator {
+  Equals
+  NotEquals
+  Exists
+  Contains
+} derive(Eq, @debug.Debug)
+
+pub struct MemoryIdempotencyStore {
+  mut entries : Array[SeenEntry]
+  ttl_seconds : Int64
+}
+pub fn MemoryIdempotencyStore::check_and_record(Self, String, Int64) -> IdempotencyDecision
+pub fn MemoryIdempotencyStore::new(ttl_seconds? : Int64) -> Self
+pub fn MemoryIdempotencyStore::size(Self) -> Int
+
+pub(all) struct RedactionPolicy {
+  fields : Array[String]
+  replacement : String
+} derive(Eq, @debug.Debug)
+pub fn RedactionPolicy::secure_default() -> Self
+
+pub(all) struct ReplayFixture {
+  version : Int
+  provider : @core.Provider
+  event_type : String
+  delivery_id : String?
+  headers : Array[@core.Header]
+  body : String
+  captured_at : Int64
+} derive(Eq, @debug.Debug)
+
+pub(all) struct RetryPolicy {
+  max_attempts : Int
+  initial_delay_ms : Int64
+  multiplier : Int64
+  max_delay_ms : Int64
+} derive(Eq, @debug.Debug)
+pub fn RetryPolicy::default() -> Self
+pub fn RetryPolicy::validate(Self) -> Bool
+
+pub(all) struct RetryStep {
+  attempt : Int
+  delay_ms : Int64
+  scheduled_at_ms : Int64
+} derive(Eq, @debug.Debug)
+
+pub(all) struct RouteMatch {
+  rule_name : String
+  target : String
+} derive(Eq, @debug.Debug)
+
+pub(all) struct RouteRule {
+  name : String
+  path : String
+  operator : MatchOperator
+  expected : String
+  target : String
+} derive(Eq, @debug.Debug)
+
+pub struct SeenEntry {
+  key : String
+  expires_at : Int64
+}
+
+// Type aliases
+
+// Traits
+

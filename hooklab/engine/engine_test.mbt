@@ -1,0 +1,95 @@
+///|
+test "idempotency rejects duplicate until TTL expires" {
+  let store = MemoryIdempotencyStore::new(ttl_seconds=10L)
+  assert_true(store.check_and_record("delivery-1", 100L) == Accepted)
+  assert_true(store.check_and_record("delivery-1", 105L) == Duplicate)
+  assert_true(store.check_and_record("delivery-1", 110L) == Accepted)
+  assert_eq(store.size(), 1)
+}
+
+///|
+test "retry schedule is capped and deterministic" {
+  let policy : RetryPolicy = {
+    max_attempts: 5,
+    initial_delay_ms: 1000L,
+    multiplier: 2L,
+    max_delay_ms: 3000L,
+  }
+  let steps = retry_schedule(policy, 10000L)
+  assert_eq(steps.length(), 5)
+  assert_true(
+    steps.map(fn(step) { step.delay_ms }) == [0L, 1000L, 2000L, 3000L, 3000L],
+  )
+  assert_true(steps[4].scheduled_at_ms == 19000L)
+}
+
+///|
+test "delivery stops after final retry" {
+  let policy = RetryPolicy::default()
+  assert_true(
+    decide_delivery(policy, 1, Retryable(503, "unavailable")) ==
+    RetryAfter(1000L),
+  )
+  assert_true(
+    decide_delivery(policy, 5, TransportFailure("timeout")) is DeadLetter(_),
+  )
+  assert_true(decide_delivery(policy, 1, Delivered(204)) == Success)
+}
+
+///|
+test "router matches nested scalar values" {
+  let rules : Array[RouteRule] = [
+    {
+      name: "push-main",
+      path: "$.ref",
+      operator: Equals,
+      expected: "refs/heads/main",
+      target: "https://deploy.test",
+    },
+    {
+      name: "paid",
+      path: "data.status",
+      operator: Equals,
+      expected: "paid",
+      target: "https://billing.test",
+    },
+  ]
+  let matches = route(
+    "{\"ref\":\"refs/heads/main\",\"data\":{\"status\":\"paid\"}}", rules,
+  )
+  assert_eq(matches.length(), 2)
+  assert_eq(matches[0].rule_name, "push-main")
+}
+
+///|
+test "invalid JSON has no routes" {
+  let rules : Array[RouteRule] = []
+  assert_true(route("not-json", rules).is_empty())
+}
+
+///|
+test "redaction is recursive and case insensitive" {
+  let result = redact_json(
+    "{\"token\":\"abc\",\"nested\":{\"Email\":\"a@example.com\",\"safe\":1}}",
+  )
+  assert_true(result.contains("[REDACTED]"))
+  assert_false(result.contains("a@example.com"))
+  assert_true(result.contains("\"safe\": 1"))
+}
+
+///|
+test "fixture excludes secrets from headers and body" {
+  let request : @core.WebhookRequest = {
+    provider: @core.GenericHmac,
+    headers: [
+      @core.header("Authorization", "Bearer secret"),
+      @core.header("X-Webhook-Id", "id-1"),
+    ],
+    body: "{\"password\":\"secret\",\"name\":\"ok\"}",
+    received_at: 50L,
+  }
+  let fixture = capture_fixture(request, "user.updated")
+  assert_true(fixture.headers[0].value == "[REDACTED]")
+  assert_false(fixture.body.contains("secret"))
+  assert_true(fixture.delivery_id == Some("id-1"))
+}

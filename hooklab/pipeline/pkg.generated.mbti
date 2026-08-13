@@ -1,0 +1,30 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "hooklab/hooklab/hooklab/pipeline"
+
+import {
+  "hooklab/hooklab/hooklab/core",
+  "hooklab/hooklab/hooklab/engine",
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn process(@core.WebhookRequest, String, @engine.MemoryIdempotencyStore, Array[@engine.RouteRule], verification_policy? : @core.VerificationPolicy, redaction_policy? : @engine.RedactionPolicy) -> ProcessingResult
+
+// Errors
+
+// Types and methods
+pub(all) struct ProcessedEvent {
+  event : @core.VerifiedEvent
+  routes : Array[@engine.RouteMatch]
+  redacted_body : String
+} derive(Eq, @debug.Debug)
+
+pub(all) enum ProcessingResult {
+  Processed(ProcessedEvent)
+  Rejected(@core.VerificationFailure)
+} derive(Eq, @debug.Debug)
+
+// Type aliases
+
+// Traits
+

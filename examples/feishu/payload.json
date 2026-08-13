@@ -1,0 +1,13 @@
+{
+  "schema": "2.0",
+  "header": {
+    "event_id": "feishu-hooklab-test-001",
+    "event_type": "im.message.receive_v1"
+  },
+  "event": {
+    "message": {
+      "message_type": "text",
+      "content": "{\"text\":\"hello HookLab\"}"
+    }
+  }
+}

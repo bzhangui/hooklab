@@ -1,0 +1,28 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "hooklab/hooklab/hooklab/crypto"
+
+// Values
+pub fn bytes_to_hex(Bytes) -> String
+
+pub fn constant_time_equal(String, String) -> Bool
+
+pub fn hmac_sha256(String, String) -> Bytes
+
+pub fn hmac_sha256_bytes(Bytes, Bytes) -> Bytes
+
+pub fn hmac_sha256_hex(String, String) -> String
+
+pub fn sha256(String) -> Bytes
+
+pub fn sha256_bytes(Bytes) -> Bytes
+
+pub fn sha256_hex(String) -> String
+
+// Errors
+
+// Types and methods
+
+// Type aliases
+
+// Traits
+
