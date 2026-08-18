@@ -29,7 +29,12 @@ pub fn process(
     @core.Verified(event) =>
       match event.delivery_id {
         Some(id) =>
-          match store.check_and_record(id, request.received_at) {
+          match
+            store.check_and_record_scoped(
+              @core.provider_name(event.provider),
+              id,
+              request.received_at,
+            ) {
             @engine.Duplicate =>
               Rejected({
                 code: @core.ReplayDetected,

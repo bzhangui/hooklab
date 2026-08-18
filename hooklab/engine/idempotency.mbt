@@ -64,3 +64,34 @@ pub fn MemoryIdempotencyStore::check_and_record(
   self.entries.push({ key, expires_at: now + self.ttl_seconds })
   Accepted
 }
+
+///|
+/// Creates a collision-resistant key for a delivery ID inside a provider or
+/// tenant namespace. A length prefix keeps values such as ("a", "bc") and
+/// ("ab", "c") distinct without relying on a reserved separator character.
+pub fn scoped_idempotency_key(scope : String, key : String) -> String? {
+  let clean_namespace = @core.trim_ascii(scope)
+  let clean_key = @core.trim_ascii(key)
+  if clean_namespace.is_empty() || clean_key.is_empty() {
+    None
+  } else {
+    Some(
+      clean_namespace.length().to_string() + ":" + clean_namespace + clean_key,
+    )
+  }
+}
+
+///|
+/// Atomically checks a delivery ID within a namespace. This prevents equal
+/// IDs from unrelated providers or tenants from suppressing one another.
+pub fn MemoryIdempotencyStore::check_and_record_scoped(
+  self : MemoryIdempotencyStore,
+  scope : String,
+  key : String,
+  now : Int64,
+) -> IdempotencyDecision {
+  match scoped_idempotency_key(scope, key) {
+    Some(scoped) => self.check_and_record(scoped, now)
+    None => InvalidKey
+  }
+}

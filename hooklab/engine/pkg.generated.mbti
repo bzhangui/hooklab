@@ -23,6 +23,8 @@ pub fn retry_schedule(RetryPolicy, Int64) -> Array[RetryStep]
 
 pub fn route(String, Array[RouteRule]) -> Array[RouteMatch]
 
+pub fn scoped_idempotency_key(String, String) -> String?
+
 // Errors
 
 // Types and methods
@@ -57,6 +59,7 @@ pub struct MemoryIdempotencyStore {
   ttl_seconds : Int64
 }
 pub fn MemoryIdempotencyStore::check_and_record(Self, String, Int64) -> IdempotencyDecision
+pub fn MemoryIdempotencyStore::check_and_record_scoped(Self, String, String, Int64) -> IdempotencyDecision
 pub fn MemoryIdempotencyStore::new(ttl_seconds? : Int64) -> Self
 pub fn MemoryIdempotencyStore::size(Self) -> Int
 

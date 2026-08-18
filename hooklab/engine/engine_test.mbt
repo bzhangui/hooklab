@@ -8,6 +8,32 @@ test "idempotency rejects duplicate until TTL expires" {
 }
 
 ///|
+test "idempotency namespaces isolate providers and tenants" {
+  let store = MemoryIdempotencyStore::new(ttl_seconds=10L)
+  assert_true(
+    store.check_and_record_scoped("github", "delivery-1", 100L) == Accepted,
+  )
+  assert_true(
+    store.check_and_record_scoped("stripe", "delivery-1", 100L) == Accepted,
+  )
+  assert_true(
+    store.check_and_record_scoped("github", "delivery-1", 101L) == Duplicate,
+  )
+  assert_true(
+    store.check_and_record_scoped("", "delivery-1", 101L) == InvalidKey,
+  )
+  assert_true(store.check_and_record_scoped("github", "  ", 101L) == InvalidKey)
+  assert_eq(store.size(), 2)
+}
+
+///|
+test "length-prefixed scopes cannot collide" {
+  assert_true(
+    scoped_idempotency_key("a", "bc") != scoped_idempotency_key("ab", "c"),
+  )
+}
+
+///|
 test "retry schedule is capped and deterministic" {
   let policy : RetryPolicy = {
     max_attempts: 5,
