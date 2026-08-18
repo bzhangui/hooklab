@@ -109,3 +109,56 @@ pub fn decide_delivery(
       }
   }
 }
+
+///|
+/// Parses the delta-seconds form of the HTTP Retry-After header. HTTP-date is
+/// deliberately left to the transport adapter because it requires an injected
+/// wall clock and date parser.
+pub fn parse_retry_after_seconds(value : String) -> Int64? {
+  try @string.parse_int64(@core.trim_ascii(value)) catch {
+    _ => None
+  } noraise {
+    seconds => if seconds >= 0L { Some(seconds) } else { None }
+  }
+}
+
+///|
+fn retry_after_milliseconds(policy : RetryPolicy, value : String) -> Int64? {
+  match parse_retry_after_seconds(value) {
+    Some(seconds) =>
+      if seconds >= policy.max_delay_ms / 1000L {
+        Some(policy.max_delay_ms)
+      } else {
+        Some(seconds * 1000L)
+      }
+    None => None
+  }
+}
+
+///|
+/// Applies a server-provided Retry-After delta without weakening the local
+/// exponential backoff. The larger delay wins and the policy maximum remains
+/// an explicit resource bound. Malformed hints fall back to the normal policy.
+pub fn decide_delivery_with_retry_after(
+  policy : RetryPolicy,
+  attempt : Int,
+  outcome : AttemptOutcome,
+  retry_after : String?,
+) -> DeliveryDecision {
+  match decide_delivery(policy, attempt, outcome) {
+    RetryAfter(default_delay) => {
+      let hinted_delay = match retry_after {
+        Some(value) => retry_after_milliseconds(policy, value).unwrap_or(0L)
+        None => 0L
+      }
+      RetryAfter(
+        if hinted_delay > default_delay {
+          hinted_delay
+        } else {
+          default_delay
+        },
+      )
+    }
+    decision => decision
+  }
+}

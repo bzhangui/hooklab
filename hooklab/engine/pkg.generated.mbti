@@ -11,6 +11,10 @@ pub fn capture_fixture(@core.WebhookRequest, String, policy? : RedactionPolicy) 
 
 pub fn decide_delivery(RetryPolicy, Int, AttemptOutcome) -> DeliveryDecision
 
+pub fn decide_delivery_with_retry_after(RetryPolicy, Int, AttemptOutcome, String?) -> DeliveryDecision
+
+pub fn parse_retry_after_seconds(String) -> Int64?
+
 pub fn redact_headers(Array[@core.Header], policy? : RedactionPolicy) -> Array[@core.Header]
 
 pub fn redact_json(String, policy? : RedactionPolicy) -> String

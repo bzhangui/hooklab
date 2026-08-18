@@ -63,6 +63,53 @@ test "delivery stops after final retry" {
 }
 
 ///|
+test "Retry-After extends backoff and respects policy cap" {
+  let policy = RetryPolicy::default()
+  assert_true(
+    decide_delivery_with_retry_after(
+      policy,
+      1,
+      Retryable(429, "rate limited"),
+      Some("15"),
+    ) ==
+    RetryAfter(15000L),
+  )
+  assert_true(
+    decide_delivery_with_retry_after(
+      policy,
+      1,
+      Retryable(503, "maintenance"),
+      Some("3600"),
+    ) ==
+    RetryAfter(60000L),
+  )
+}
+
+///|
+test "malformed Retry-After falls back and final attempt stays dead letter" {
+  let policy = RetryPolicy::default()
+  assert_true(
+    decide_delivery_with_retry_after(
+      policy,
+      2,
+      TransportFailure("timeout"),
+      Some("not-a-delay"),
+    ) ==
+    RetryAfter(2000L),
+  )
+  assert_true(
+    decide_delivery_with_retry_after(
+      policy,
+      5,
+      Retryable(429, "rate limited"),
+      Some("15"),
+    )
+    is DeadLetter(_),
+  )
+  assert_true(parse_retry_after_seconds("-1") is None)
+}
+
+///|
 test "router matches nested scalar values" {
   let rules : Array[RouteRule] = [
     {
