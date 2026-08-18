@@ -180,3 +180,42 @@ test "generic malformed timestamp cannot bypass freshness" {
   }
   assert_true(failure.code == @core.MissingTimestamp)
 }
+
+///|
+test "secret ring accepts previous key during rotation" {
+  let body = "{\"action\":\"rotated\"}"
+  let signature = @crypto.hmac_sha256_hex("previous-secret", body)
+  let request : @core.WebhookRequest = {
+    provider: @core.GitHub,
+    headers: [
+      @core.header("X-Hub-Signature-256", "sha256=" + signature),
+      @core.header("X-GitHub-Delivery", "rotation-1"),
+    ],
+    body,
+    received_at: 1000L,
+  }
+  assert_true(
+    verify_with_secrets(request, [
+      "current-secret", "previous-secret", "unrelated-secret",
+    ])
+    is @core.Verified(_),
+  )
+  assert_true(
+    verify_with_secrets(request, ["current-secret", "unrelated-secret"])
+    is @core.Rejected(_),
+  )
+}
+
+///|
+test "secret ring rejects empty configuration" {
+  let request : @core.WebhookRequest = {
+    provider: @core.GitHub,
+    headers: [],
+    body: "{}",
+    received_at: 1000L,
+  }
+  guard verify_with_secrets(request, []) is @core.Rejected(failure) else {
+    fail("expected empty secret ring rejection")
+  }
+  assert_true(failure.code == @core.InvalidPayload)
+}

@@ -371,3 +371,37 @@ pub fn verify(
     @core.GenericHmac => verify_generic(request, secret, policy)
   }
 }
+
+///|
+/// Verifies against every configured secret to support zero-downtime secret
+/// rotation. All candidates are evaluated even after a match so the amount of
+/// verification work does not reveal which key in the ring is active.
+pub fn verify_with_secrets(
+  request : @core.WebhookRequest,
+  secrets : Array[String],
+  policy? : @core.VerificationPolicy = @core.VerificationPolicy::secure_default(),
+) -> @core.VerificationResult {
+  guard !secrets.is_empty() else {
+    return @core.rejection(
+      @core.InvalidPayload,
+      @core.Input,
+      "At least one webhook secret is required for verification.",
+      "Configure the active secret and any previous secret retained during rotation.",
+    )
+  }
+  let mut matched : @core.VerifiedEvent? = None
+  let mut first_failure : @core.VerificationFailure? = None
+  for secret in secrets {
+    match verify(request, secret, policy~) {
+      @core.Verified(event) => matched = Some(event)
+      @core.Rejected(failure) =>
+        if first_failure is None {
+          first_failure = Some(failure)
+        }
+    }
+  }
+  match matched {
+    Some(event) => @core.Verified(event)
+    None => @core.Rejected(first_failure.unwrap())
+  }
+}

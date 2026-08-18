@@ -8,6 +8,8 @@ import {
 // Values
 pub fn verify(@core.WebhookRequest, String, policy? : @core.VerificationPolicy) -> @core.VerificationResult
 
+pub fn verify_with_secrets(@core.WebhookRequest, Array[String], policy? : @core.VerificationPolicy) -> @core.VerificationResult
+
 // Errors
 
 // Types and methods
