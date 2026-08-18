@@ -88,6 +88,60 @@ test "router matches nested scalar values" {
 }
 
 ///|
+test "router addresses array items by numeric path segment" {
+  let rules : Array[RouteRule] = [
+    {
+      name: "first-paid-item",
+      path: "items.0.status",
+      operator: Equals,
+      expected: "paid",
+      target: "queue://billing",
+    },
+    {
+      name: "second-sku-prefix",
+      path: "$.items.1.sku",
+      operator: StartsWith,
+      expected: "PRO-",
+      target: "queue://provisioning",
+    },
+  ]
+  let body = "{\"items\":[{\"status\":\"paid\"},{\"sku\":\"PRO-ANNUAL\"}]}"
+  let matches = route(body, rules)
+  assert_eq(matches.length(), 2)
+  assert_eq(matches[1].rule_name, "second-sku-prefix")
+}
+
+///|
+test "router supports suffix matching and rejects invalid array indexes" {
+  let rules : Array[RouteRule] = [
+    {
+      name: "json-file",
+      path: "files.0.name",
+      operator: EndsWith,
+      expected: ".json",
+      target: "queue://json",
+    },
+    {
+      name: "out-of-range",
+      path: "files.9.name",
+      operator: Exists,
+      expected: "",
+      target: "queue://invalid",
+    },
+    {
+      name: "not-an-index",
+      path: "files.first.name",
+      operator: Exists,
+      expected: "",
+      target: "queue://invalid",
+    },
+  ]
+  let matches = route("{\"files\":[{\"name\":\"event.json\"}]}", rules)
+  assert_eq(matches.length(), 1)
+  assert_eq(matches[0].rule_name, "json-file")
+}
+
+///|
 test "invalid JSON has no routes" {
   let rules : Array[RouteRule] = []
   assert_true(route("not-json", rules).is_empty())

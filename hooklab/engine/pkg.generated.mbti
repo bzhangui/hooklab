@@ -52,6 +52,8 @@ pub(all) enum MatchOperator {
   NotEquals
   Exists
   Contains
+  StartsWith
+  EndsWith
 } derive(Eq, @debug.Debug)
 
 pub struct MemoryIdempotencyStore {

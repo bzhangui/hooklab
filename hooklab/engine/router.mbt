@@ -4,6 +4,8 @@ pub(all) enum MatchOperator {
   NotEquals
   Exists
   Contains
+  StartsWith
+  EndsWith
 } derive(Eq, Debug)
 
 ///|
@@ -20,6 +22,21 @@ pub(all) struct RouteMatch {
   rule_name : String
   target : String
 } derive(Eq, Debug)
+
+///|
+fn parse_array_index(value : String) -> Int? {
+  if value.is_empty() {
+    return None
+  }
+  let mut index = 0
+  for c in value {
+    if c < '0' || c > '9' {
+      return None
+    }
+    index = index * 10 + (c.to_int() - '0'.to_int())
+  }
+  Some(index)
+}
 
 ///|
 fn json_at_path(root : Json, path : String) -> Json? {
@@ -39,6 +56,11 @@ fn json_at_path(root : Json, path : String) -> Json? {
         match values.get_from_string(part) {
           Some(next) => current = next
           None => return None
+        }
+      Array(values) =>
+        match parse_array_index(part) {
+          Some(index) if index < values.length() => current = values[index]
+          _ => return None
         }
       _ => return None
     }
@@ -70,6 +92,8 @@ fn rule_matches(root : Json, rule : RouteRule) -> Bool {
     Equals => scalar == rule.expected
     NotEquals => scalar != rule.expected
     Contains => scalar.contains(rule.expected)
+    StartsWith => scalar.has_prefix(rule.expected)
+    EndsWith => scalar.has_suffix(rule.expected)
   }
 }
 
