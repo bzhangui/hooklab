@@ -64,7 +64,7 @@ pub fn retry_schedule(
   for attempt = 1; attempt <= policy.max_attempts; attempt = attempt + 1 {
     let delay = retry_delay(policy, attempt)
     scheduled = scheduled + delay
-    steps.push({ attempt, delay_ms: delay, scheduled_at_ms: scheduled })
+    steps.push({ attempt, delay_ms: delay, scheduled_at_ms: scheduled, })
   }
   steps
 }

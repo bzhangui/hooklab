@@ -138,7 +138,7 @@ pub fn sha256(value : String) -> Bytes {
 
 ///|
 pub fn bytes_to_hex(value : Bytes) -> String {
-  let out = StringBuilder::new()
+  let out = StringBuilder()
   for byte in value {
     out.write_string(byte.to_hex())
   }

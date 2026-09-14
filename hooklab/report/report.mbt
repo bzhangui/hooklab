@@ -1,6 +1,6 @@
 ///|
 fn json_escape(value : String) -> String {
-  let out = StringBuilder::new()
+  let out = StringBuilder()
   for c in value {
     match c {
       '"' => out.write_string("\\\"")
@@ -28,7 +28,7 @@ fn json_string(value : String) -> String {
 
 ///|
 fn html_escape(value : String) -> String {
-  let out = StringBuilder::new()
+  let out = StringBuilder()
   for c in value {
     match c {
       '&' => out.write_string("&amp;")

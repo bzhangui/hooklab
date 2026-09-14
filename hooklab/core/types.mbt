@@ -43,7 +43,7 @@ pub(all) struct Header {
 
 ///|
 pub fn header(name : String, value : String) -> Header {
-  { name, value }
+  { name, value, }
 }
 
 ///|
@@ -103,7 +103,7 @@ pub fn rejection(
   message : String,
   suggestion : String,
 ) -> VerificationResult {
-  Rejected({ code, stage, message, suggestion })
+  Rejected({ code, stage, message, suggestion, })
 }
 
 ///|
@@ -117,7 +117,7 @@ fn ascii_lower_char(c : Char) -> Char {
 
 ///|
 pub fn ascii_lower(value : String) -> String {
-  let out = StringBuilder::new()
+  let out = StringBuilder()
   for c in value {
     out.write_char(ascii_lower_char(c))
   }
@@ -147,7 +147,7 @@ pub fn trim_ascii(value : String) -> String {
   while end > start && is_ascii_space(chars[end - 1]) {
     end = end - 1
   }
-  let out = StringBuilder::new()
+  let out = StringBuilder()
   for i = start; i < end; i = i + 1 {
     out.write_char(chars[i])
   }

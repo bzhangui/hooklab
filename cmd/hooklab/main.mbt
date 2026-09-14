@@ -97,7 +97,7 @@ fn request_for(
         @core.header("x-webhook-id", id),
       ]
   }
-  { provider, headers, body, received_at: current_seconds() }
+  { provider, headers, body, received_at: current_seconds(), }
 }
 
 ///|

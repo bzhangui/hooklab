@@ -182,7 +182,7 @@ fn parse_stripe_header(value : String) -> StripeSignature {
       None => ()
     }
   }
-  { timestamp, signatures }
+  { timestamp, signatures, }
 }
 
 ///|

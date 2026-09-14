@@ -24,7 +24,7 @@ pub struct MemoryIdempotencyStore {
 pub fn MemoryIdempotencyStore::new(
   ttl_seconds? : Int64 = 86400L,
 ) -> MemoryIdempotencyStore {
-  { entries: [], ttl_seconds }
+  { entries: [], ttl_seconds, }
 }
 
 ///|
@@ -61,7 +61,7 @@ pub fn MemoryIdempotencyStore::check_and_record(
       return Duplicate
     }
   }
-  self.entries.push({ key, expires_at: now + self.ttl_seconds })
+  self.entries.push({ key, expires_at: now + self.ttl_seconds, })
   Accepted
 }
 

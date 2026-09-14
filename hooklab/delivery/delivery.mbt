@@ -46,7 +46,7 @@ pub struct DeliveryQueue {
 
 ///|
 pub fn DeliveryQueue::new() -> DeliveryQueue {
-  { deliveries: [] }
+  { deliveries: [], }
 }
 
 ///|
@@ -242,7 +242,7 @@ pub fn DeliveryQueue::cancel(
   guard item.state == Pending || item.state == Scheduled else {
     return InvalidTransition
   }
-  self.deliveries[index] = { ..item, state: Cancelled, updated_at_ms: now_ms }
+  self.deliveries[index] = { ..item, state: Cancelled, updated_at_ms: now_ms, }
   Updated
 }
 

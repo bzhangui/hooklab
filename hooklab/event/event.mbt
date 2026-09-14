@@ -25,7 +25,7 @@ pub struct EventStore {
 
 ///|
 pub fn EventStore::new() -> EventStore {
-  { events: [] }
+  { events: [], }
 }
 
 ///|

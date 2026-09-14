@@ -106,7 +106,7 @@ pub fn route(body : String, rules : Array[RouteRule]) -> Array[RouteMatch] {
       let matches : Array[RouteMatch] = []
       for rule in rules {
         if rule_matches(parsed, rule) {
-          matches.push({ rule_name: rule.name, target: rule.target })
+          matches.push({ rule_name: rule.name, target: rule.target, })
         }
       }
       matches
