@@ -5,6 +5,7 @@ import http from "node:http";
 import os from "node:os";
 import path from "node:path";
 import { spawn } from "node:child_process";
+import { stopChild } from "./e2e-process.mjs";
 
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 async function unusedPort() {
@@ -43,7 +44,11 @@ const child = spawn(
     "deadletter-secret", "http://127.0.0.1:" + receiverPort + "/target",
     String(gatewayPort), dataDir,
   ],
-  {cwd: path.resolve(import.meta.dirname, ".."), stdio: "ignore"},
+  {
+    cwd: path.resolve(import.meta.dirname, ".."),
+    stdio: "ignore",
+    detached: process.platform !== "win32",
+  },
 );
 
 try {
@@ -101,7 +106,7 @@ try {
   assert.equal(delivery?.attempt, 1);
   console.log("Gateway dead-letter recovery E2E passed.");
 } finally {
-  child.kill();
+  await stopChild(child);
   await new Promise(resolve => receiver.close(resolve));
   await sleep(200);
   if (path.resolve(dataDir).startsWith(path.resolve(os.tmpdir()))) {

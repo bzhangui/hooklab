@@ -5,6 +5,7 @@ import http from "node:http";
 import os from "node:os";
 import path from "node:path";
 import { spawn } from "node:child_process";
+import { stopChild } from "./e2e-process.mjs";
 
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -68,7 +69,11 @@ const child = spawn(
     String(gatewayPort),
     dataDir,
   ],
-  {cwd: path.resolve(import.meta.dirname, ".."), stdio: ["ignore", "pipe", "pipe"]},
+  {
+    cwd: path.resolve(import.meta.dirname, ".."),
+    stdio: ["ignore", "pipe", "pipe"],
+    detached: process.platform !== "win32",
+  },
 );
 let logs = "";
 child.stdout.on("data", chunk => { logs += chunk; });
@@ -131,7 +136,7 @@ try {
   assert.equal(fs.existsSync(path.join(dataDir, "state.json")), true);
   console.log("Gateway E2E passed: verified, deduplicated, persisted, retried, delivered, and redacted.");
 } finally {
-  child.kill();
+  await stopChild(child);
   await new Promise(resolve => receiver.close(resolve));
   await sleep(200);
   if (path.resolve(dataDir).startsWith(path.resolve(os.tmpdir()))) {

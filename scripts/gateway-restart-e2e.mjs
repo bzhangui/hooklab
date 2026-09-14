@@ -5,6 +5,7 @@ import http from "node:http";
 import os from "node:os";
 import path from "node:path";
 import { spawn } from "node:child_process";
+import { stopChild } from "./e2e-process.mjs";
 
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 async function unusedPort() {
@@ -78,7 +79,12 @@ const child = spawn(
     "run", "--target", "js", "cmd/hooklab", "--", "serve", "generic",
     "-", target, String(gatewayPort), dataDir,
   ],
-  {cwd: path.resolve(import.meta.dirname, ".."), stdio: "ignore", env: {...process.env, HOOKLAB_SECRET: "restart-secret"}},
+  {
+    cwd: path.resolve(import.meta.dirname, ".."),
+    stdio: "ignore",
+    env: {...process.env, HOOKLAB_SECRET: "restart-secret"},
+    detached: process.platform !== "win32",
+  },
 );
 try {
   const rows = await waitFor(
@@ -114,7 +120,7 @@ try {
   assert.equal(received, 1);
   console.log("Gateway restart recovery and persistent deduplication E2E passed.");
 } finally {
-  child.kill();
+  await stopChild(child);
   await new Promise(resolve => receiver.close(resolve));
   await sleep(200);
   if (path.resolve(dataDir).startsWith(path.resolve(os.tmpdir()))) {

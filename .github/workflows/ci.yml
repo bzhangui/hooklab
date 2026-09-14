@@ -10,19 +10,32 @@ permissions:
 jobs:
   test:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Install MoonBit
-        run: curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash
-      - name: Validate
         run: |
-          export PATH="$HOME/.moon/bin:$PATH"
-          moon version --all
-          moon fmt --check
-          moon check --target all --deny-warn
-          moon test --target all --deny-warn
-          moon build --target all --deny-warn
-          bash scripts/demo.sh
-          node scripts/gateway-e2e.mjs
-          node scripts/gateway-deadletter-e2e.mjs
-          node scripts/gateway-restart-e2e.mjs
+          curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash
+          echo "$HOME/.moon/bin" >> "$GITHUB_PATH"
+      - name: Toolchain
+        run: moon version --all
+      - name: Format
+        run: moon fmt --check
+      - name: Check
+        run: moon check --target all --deny-warn
+      - name: Test
+        run: moon test --target all --deny-warn
+      - name: Build
+        run: moon build --target all --deny-warn
+      - name: CLI demo
+        timeout-minutes: 2
+        run: bash scripts/demo.sh
+      - name: Gateway delivery E2E
+        timeout-minutes: 2
+        run: node scripts/gateway-e2e.mjs
+      - name: Gateway dead-letter E2E
+        timeout-minutes: 2
+        run: node scripts/gateway-deadletter-e2e.mjs
+      - name: Gateway restart E2E
+        timeout-minutes: 2
+        run: node scripts/gateway-restart-e2e.mjs
