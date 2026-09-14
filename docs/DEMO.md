@@ -33,3 +33,14 @@ moon run --target js cmd/hooklab -- replay http://127.0.0.1:8787/webhook @exampl
 ```
 
 默认演示脚本不会调用 HTTP replay，避免误发数据。
+## 事件交付平台验收
+
+以下三组测试只在回环地址启动临时服务，并自动清理测试数据：
+
+```bash
+node scripts/gateway-e2e.mjs
+node scripts/gateway-deadletter-e2e.mjs
+node scripts/gateway-restart-e2e.mjs
+```
+
+它们分别验证可靠重试和最终投递、永久错误进入死信后人工恢复、进程重启恢复 in-flight 任务以及跨重启持久去重。网关的人工演示命令、管理 API 和安全部署边界见 [GATEWAY.md](GATEWAY.md)。

@@ -18,7 +18,7 @@ GitHub 协议本身没有签名时间戳，因此依赖 delivery ID 幂等防止
 - 算法：HMAC-SHA256
 - 默认容差：300 秒；支持多个 `v1`，便于密钥滚动期间验证。
 
-Stripe 事件 ID 位于 JSON payload。为保持验签层只处理原始输入，当前 CLI/通用接口接受代理层提供的 `X-HookLab-Delivery-Id`。生产适配器应在验签成功后解析 payload 的 `id` 并原子写入幂等存储。
+Stripe 事件通过验签后从 JSON payload 的 `id` 和 `type` 提取投递 ID 与事件类型；不会在验签前解析或重新序列化原始请求体。代理和测试环境仍可通过 `X-HookLab-Delivery-Id` 显式覆盖 ID。
 
 ## 飞书 / Lark
 
@@ -27,7 +27,7 @@ Stripe 事件 ID 位于 JSON payload。为保持验签层只处理原始输入�
 - 算法：SHA-256
 - nonce 同时作为当前实现的 delivery ID。
 
-这里的 secret 参数对应事件订阅配置中的 Encrypt Key，而不是 Verification Token。
+这里的 secret 参数对应事件订阅配置中的 Encrypt Key，而不是 Verification Token。 事件类型优先读取 `X-Lark-Event-Type`，其次读取 2.0 payload 的 `header.event_type`，并兼容旧 payload 的 `type`。
 
 ## 通用 HMAC
 

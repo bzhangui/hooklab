@@ -18,9 +18,15 @@ timestamp freshness ─失败──▶ reject replay/stale event
     ▼
 delivery-id check-and-record ─重复──▶ acknowledge, no side effects
     │
-    ├──▶ JSON route matching
-    ├──▶ redacted diagnosis/report
-    └──▶ delivery decision ──▶ retry / success / dead letter
+    ▼
+accepted event ──▶ atomic snapshot ──▶ redacted management view
+    │
+    ▼
+JSON route matching ──▶ delivery queue
+    │
+    ├──2xx──────────────────────────▶ delivered
+    ├──408/425/429/5xx/transport────▶ scheduled retry
+    └──permanent/exhausted──────────▶ dead letter ──▶ manual recovery
 ```
 
 顺序属于安全属性：只有验签成功的数据才能污染幂等表；只有首次出现的 delivery ID 才能触发副作用；脱敏副本用于诊断，已验签原文只留在当前交付路径。
@@ -30,10 +36,14 @@ delivery-id check-and-record ─重复──▶ acknowledge, no side effects
 - `core` 不依赖协议实现，定义稳定领域类型和机器错误码。
 - `crypto` 是可移植的 SHA-256 / HMAC-SHA256 实现。
 - `providers` 负责头格式、签名输入与时间戳规则，不承载业务副作用。
-- `engine` 提供纯规则或小状态组件，可以单独测试。
-- `pipeline` 固化正确的安全顺序。
+- `engine` 提供幂等、路由、脱敏和重试等纯规则或小状态组件。
+- `event` 定义已接收事件以及可替换的查询存储语义。
+- `delivery` 定义可持久化的投递生命周期、领取规则和死信恢复。
+- `contract` 校验事件传输契约，并一次返回全部问题。
+- `gateway` 固化验签、幂等、持久化、路由和任务创建的顺序。
+- `pipeline` 保留轻量库使用场景的安全处理入口。
 - `report` 只接收处理结果，不能访问密钥。
-- `cmd/hooklab` 是薄适配层，文件与网络 I/O 仅存在于 JS CLI。
+- `cmd/hooklab` 提供 JS/Node I/O 适配、本地持久化、管理 API 与控制台。
 
 ## 生产扩展
 

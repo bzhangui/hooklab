@@ -18,7 +18,11 @@ jobs:
         run: |
           export PATH="$HOME/.moon/bin:$PATH"
           moon version --all
+          moon fmt --check
           moon check --target all --deny-warn
-          moon test --target all
+          moon test --target all --deny-warn
           moon build --target all --deny-warn
           bash scripts/demo.sh
+          node scripts/gateway-e2e.mjs
+          node scripts/gateway-deadletter-e2e.mjs
+          node scripts/gateway-restart-e2e.mjs
