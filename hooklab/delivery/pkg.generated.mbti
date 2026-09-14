@@ -1,0 +1,66 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "hooklab/hooklab/hooklab/delivery"
+
+import {
+  "hooklab/hooklab/hooklab/engine",
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn delivery_state_name(DeliveryState) -> String
+
+// Errors
+
+// Types and methods
+pub(all) struct Delivery {
+  id : String
+  event_id : String
+  target : String
+  ordering_key : String?
+  attempt : Int
+  state : DeliveryState
+  next_attempt_at_ms : Int64
+  last_status : Int?
+  last_error : String?
+  created_at_ms : Int64
+  updated_at_ms : Int64
+} derive(Eq, @debug.Debug)
+
+pub struct DeliveryQueue {
+  deliveries : Array[Delivery]
+}
+pub fn DeliveryQueue::all(Self) -> Array[Delivery]
+pub fn DeliveryQueue::cancel(Self, String, Int64) -> UpdateResult
+pub fn DeliveryQueue::claim_due(Self, Int64, limit? : Int) -> Array[Delivery]
+pub fn DeliveryQueue::enqueue(Self, String, String, String, Int64, ordering_key? : String?) -> EnqueueResult
+pub fn DeliveryQueue::get(Self, String) -> Delivery?
+pub fn DeliveryQueue::new() -> Self
+pub fn DeliveryQueue::record_outcome(Self, String, @engine.AttemptOutcome, Int64, retry_after? : String?, policy? : @engine.RetryPolicy) -> UpdateResult
+pub fn DeliveryQueue::replay_dead_letter(Self, String, Int64) -> UpdateResult
+pub fn DeliveryQueue::size(Self) -> Int
+
+pub(all) enum DeliveryState {
+  Pending
+  Scheduled
+  InFlight
+  Delivered
+  DeadLettered
+  Cancelled
+} derive(Eq, @debug.Debug)
+
+pub(all) enum EnqueueResult {
+  Enqueued
+  DuplicateDelivery
+  InvalidDelivery
+} derive(Eq, @debug.Debug)
+
+pub(all) enum UpdateResult {
+  Updated
+  NotFound
+  InvalidTransition
+} derive(Eq, @debug.Debug)
+
+// Type aliases
+
+// Traits
+

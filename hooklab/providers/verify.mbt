@@ -61,11 +61,20 @@ fn event_type(request : @core.WebhookRequest) -> String {
   match request.provider {
     @core.GitHub =>
       @core.find_header(request.headers, "x-github-event").unwrap_or("unknown")
-    @core.Stripe => "stripe.event"
+    @core.Stripe =>
+      payload_string_at_path(request.body, ["type"]).unwrap_or("stripe.event")
     @core.Feishu =>
-      @core.find_header(request.headers, "x-lark-event-type").unwrap_or(
-        "feishu.event",
-      )
+      match @core.find_header(request.headers, "x-lark-event-type") {
+        Some(value) => value
+        None =>
+          match payload_string_at_path(request.body, ["header", "event_type"]) {
+            Some(value) => value
+            None =>
+              payload_string_at_path(request.body, ["type"]).unwrap_or(
+                "feishu.event",
+              )
+          }
+      }
     @core.GenericHmac =>
       @core.find_header(request.headers, "x-webhook-event").unwrap_or(
         "webhook.event",
@@ -77,7 +86,11 @@ fn event_type(request : @core.WebhookRequest) -> String {
 fn delivery_id(request : @core.WebhookRequest) -> String? {
   match request.provider {
     @core.GitHub => @core.find_header(request.headers, "x-github-delivery")
-    @core.Stripe => @core.find_header(request.headers, "x-hooklab-delivery-id")
+    @core.Stripe =>
+      match @core.find_header(request.headers, "x-hooklab-delivery-id") {
+        Some(value) => Some(value)
+        None => payload_string_at_path(request.body, ["id"])
+      }
     @core.Feishu => @core.find_header(request.headers, "x-lark-request-nonce")
     @core.GenericHmac => @core.find_header(request.headers, "x-webhook-id")
   }

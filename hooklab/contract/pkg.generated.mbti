@@ -1,0 +1,38 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "hooklab/hooklab/hooklab/contract"
+
+import {
+  "hooklab/hooklab/hooklab/core",
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn validate(@core.WebhookRequest, String, WebhookContract) -> ContractResult
+
+// Errors
+
+// Types and methods
+pub(all) struct ContractIssue {
+  code : String
+  location : String
+  message : String
+} derive(Eq, @debug.Debug)
+
+pub(all) enum ContractResult {
+  Valid
+  Invalid(Array[ContractIssue])
+} derive(Eq, @debug.Debug)
+
+pub(all) struct WebhookContract {
+  name : String
+  provider : @core.Provider
+  event_type : String?
+  required_headers : Array[String]
+  required_paths : Array[String]
+  max_body_chars : Int
+} derive(Eq, @debug.Debug)
+
+// Type aliases
+
+// Traits
+

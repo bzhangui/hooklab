@@ -1,0 +1,44 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "hooklab/hooklab/hooklab/event"
+
+import {
+  "hooklab/hooklab/hooklab/core",
+  "moonbitlang/core/debug",
+}
+
+// Values
+
+// Errors
+
+// Types and methods
+pub(all) enum AppendResult {
+  Appended
+  DuplicateEvent
+  InvalidEvent
+} derive(Eq, @debug.Debug)
+
+pub(all) struct EventRecord {
+  id : String
+  provider : @core.Provider
+  event_type : String
+  delivery_id : String?
+  body : String
+  redacted_body : String
+  received_at : Int64
+} derive(Eq, @debug.Debug)
+
+pub struct EventStore {
+  events : Array[EventRecord]
+}
+pub fn EventStore::all(Self) -> Array[EventRecord]
+pub fn EventStore::append(Self, EventRecord) -> AppendResult
+pub fn EventStore::by_provider(Self, @core.Provider) -> Array[EventRecord]
+pub fn EventStore::by_type(Self, String) -> Array[EventRecord]
+pub fn EventStore::get(Self, String) -> EventRecord?
+pub fn EventStore::new() -> Self
+pub fn EventStore::size(Self) -> Int
+
+// Type aliases
+
+// Traits
+
