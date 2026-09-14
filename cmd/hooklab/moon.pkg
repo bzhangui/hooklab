@@ -1,15 +1,27 @@
 import {
+  "hooklab/hooklab/hooklab/contract",
   "hooklab/hooklab/hooklab/core",
   "hooklab/hooklab/hooklab/crypto",
+  "hooklab/hooklab/hooklab/delivery",
   "hooklab/hooklab/hooklab/engine",
+  "hooklab/hooklab/hooklab/event",
+  "hooklab/hooklab/hooklab/gateway",
   "hooklab/hooklab/hooklab/pipeline",
   "hooklab/hooklab/hooklab/providers",
   "hooklab/hooklab/hooklab/report",
   "moonbitlang/core/env",
+  "moonbitlang/core/json",
   "moonbitlang/core/string",
 }
 
 options(
   "is-main": true,
-  targets: { "io_js.mbt": [ "js" ], "io_stub.mbt": [ "not", "js" ] },
+  targets: {
+    "io_js.mbt": [ "js" ],
+    "io_stub.mbt": [ "not", "js" ],
+    "gateway_runtime_js.mbt": [ "js" ],
+    "environment_js.mbt": [ "js" ],
+    "environment_stub.mbt": [ "not", "js" ],
+    "gateway_runtime_stub.mbt": [ "not", "js" ],
+  },
 )

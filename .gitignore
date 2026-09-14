@@ -1,6 +1,7 @@
 /_build/
 /target/
 /.mooncakes/
+/.hooklab-data/
 diagnosis.html
 *.log
 .DS_Store

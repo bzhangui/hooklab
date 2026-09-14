@@ -1,7 +1,7 @@
 ///|
 fn usage() -> Unit {
   let text =
-    #|HookLab — verify, diagnose, route, and safely replay webhooks
+    #|HookLab — secure, persist, deliver, diagnose, and replay webhooks
     #|
     #|Usage:
     #|  hooklab sign <provider> <secret> <body|@file> [timestamp] [nonce]
@@ -9,8 +9,10 @@ fn usage() -> Unit {
     #|  hooklab inspect <provider> <secret> <body|@file> <signature> [timestamp] [id]
     #|  hooklab report <provider> <secret> <body|@file> <signature> <output.html> [timestamp] [id]
     #|  hooklab route-test <body|@file> <json.path> <expected> <target>
+    #|  hooklab contract-check <provider> <body|@file> <event-type> <required-paths-csv> [max-chars]
     #|  hooklab retry-plan [attempts]
     #|  hooklab replay <url> <body|@file>
+    #|  hooklab serve <provider> <secret[,old-secret]|-> <target-url[,target-url]> [port] [data-dir]
     #|
     #|Providers: github, stripe, feishu, generic-hmac
     #|Prefix a body with @ to read UTF-8 content from a file.
@@ -280,8 +282,8 @@ fn do_retry_plan(args : Array[String]) -> Unit {
 ///|
 fn command_args(all : Array[String]) -> Array[String] {
   let commands = [
-    "sign", "verify", "inspect", "report", "route-test", "retry-plan", "replay",
-    "help", "--help", "-h",
+    "sign", "verify", "inspect", "report", "route-test", "contract-check", "retry-plan",
+    "replay", "serve", "help", "--help", "-h",
   ]
   for i = 0; i < all.length(); i = i + 1 {
     if commands.contains(all[i]) {
@@ -307,7 +309,9 @@ fn main {
     "verify" | "inspect" => do_verify(args)
     "report" => do_report(args)
     "route-test" => do_route_test(args)
+    "contract-check" => do_contract_check(args)
     "retry-plan" => do_retry_plan(args)
+    "serve" => serve_gateway(args)
     "replay" => {
       guard args.length() >= 3 else {
         usage()
