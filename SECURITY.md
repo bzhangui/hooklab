@@ -13,6 +13,7 @@ The implementation validates signature syntax and compares fixed-length digests 
 - The built-in management server has no user authentication and therefore binds only to `127.0.0.1`. Remote deployments require an authenticated TLS reverse proxy and access control for `/api/*`.
 - Constant-time comparison reduces timing leakage in digest comparison, but a managed runtime and surrounding application can still introduce side channels. Do not expose detailed timing measurements.
 - CLI secrets can be visible in shell history and process listings. Use `HOOKLAB_SECRET`/`HOOKLAB_PREVIOUS_SECRETS`, library integration, or a secret manager instead.
+- Version 1 gateway configuration accepts only environment-variable names for secrets and rejects inline `secret`/`secrets` fields. Keep local environment files out of version control.
 - Delivery targets are trusted startup configuration. If targets become tenant-controlled, add an HTTP(S) allowlist, DNS rebinding protection, private-network policy, and redirect restrictions before enabling them.
 - The server limits request bodies to one MiB, but ingress rate limiting, tenant quotas, TLS termination, and multi-instance coordination are deployment responsibilities.
 - Delivery is at least once. Downstream consumers must deduplicate with the HookLab delivery or event identifier.

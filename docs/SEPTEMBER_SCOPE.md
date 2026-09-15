@@ -27,6 +27,14 @@ The September cycle turns the security toolkit into an event-delivery platform:
 9. real end-to-end reliability test;
 10. operations, security, architecture, and acceptance documentation.
 
+## Post-approval maintenance
+
+After initial review, development continued in the same event-delivery
+direction with version 1 declarative gateway configuration, environment-only
+secret references, named content routes, CLI validation, and an end-to-end
+configured startup test. These commits extend the accepted project rather than
+replacing its subject or repository.
+
 ## Acceptance evidence
 
 | Requirement | Evidence |

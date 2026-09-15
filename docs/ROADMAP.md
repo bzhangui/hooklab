@@ -11,13 +11,13 @@ implied capability of the current release.
 - Fan-out, bounded retries, Retry-After, dead letters, and replay
 - Contract checks, management API, local dashboard, and end-to-end tests
 
-## 0.3 — Configurable operations
+## 0.3 — Configurable operations (in progress)
 
-- Versioned declarative gateway configuration
-- Rule-based transforms with explicit size and execution budgets
-- Per-target concurrency and rate limits
-- Circuit breaking and delivery latency histograms
-- Export/import and retention controls
+- [x] Versioned declarative gateway configuration
+- [ ] Rule-based transforms with explicit size and execution budgets
+- [ ] Per-target concurrency and rate limits
+- [ ] Circuit breaking and delivery latency histograms
+- [ ] Export/import and retention controls
 
 ## 0.4 — Transactional adapters
 

@@ -4,4 +4,7 @@
 /.hooklab-data/
 diagnosis.html
 *.log
+.env
+.env.*
+!.env.example
 .DS_Store

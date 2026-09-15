@@ -7,7 +7,25 @@ keeps terminal failures in a dead-letter state.
 
 ## Start a gateway
 
-The server currently uses the JavaScript target and Node.js 18 or newer:
+The server currently uses the JavaScript target and Node.js 18 or newer.
+
+### Declarative configuration (recommended)
+
+Validate the versioned configuration before starting. The file contains only
+environment-variable names and never the secret values themselves:
+
+~~~bash
+export HOOKLAB_SECRET=local-development-secret
+export HOOKLAB_PREVIOUS_SECRETS=previous-secret
+moon run --target js cmd/hooklab -- config-check examples/gateway/config.json
+moon run --target js cmd/hooklab -- serve-config examples/gateway/config.json
+~~~
+
+The example demonstrates content-based named routes. See
+[CONFIGURATION.md](CONFIGURATION.md) for the version 1 schema, supported
+operators, defaults, and PowerShell commands.
+
+### Positional command
 
 For normal use, keep secrets out of command history:
 
@@ -87,10 +105,11 @@ deployment concerns.
 
 ~~~bash
 node scripts/gateway-e2e.mjs
+node scripts/gateway-config-e2e.mjs
 node scripts/gateway-deadletter-e2e.mjs
 node scripts/gateway-restart-e2e.mjs
 ~~~
 
-The tests start temporary loopback services, rejects the first two delivery
-attempts, confirms eventual success, checks duplicate suppression and API
-redaction, verifies a durable state file, and removes its temporary data.
+The tests start temporary loopback services, validate configuration, reject the first two delivery
+attempts, confirm eventual success, check duplicate suppression and API
+redaction, verify a durable state file, and remove their temporary data.

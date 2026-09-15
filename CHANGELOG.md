@@ -2,6 +2,15 @@
 
 All notable changes are documented here. HookLab follows semantic versioning.
 
+## Unreleased
+
+### Added
+
+- Version 1 declarative gateway configuration with named content routes.
+- `config-check` full-issue validation and `serve-config` runtime startup.
+- Environment-variable-only secret references; inline secrets are rejected.
+- Cross-platform configuration tests and a runnable configuration E2E test.
+
 ## 0.2.0 — September 2026 maintenance cycle
 
 Baseline: 548c5e2 (0.1.0 functionality completed before this maintenance cycle).

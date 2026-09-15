@@ -10,13 +10,21 @@ HookLab 是一个用 MoonBit 编写的自托管 Webhook 安全与事件交付平
 
 ## 运行事件交付网关
 
-以下命令启动一个只监听本机的持久化网关，把通过通用 HMAC 验证的事件可靠投递到目标服务：
+推荐先校验版本化配置，再从环境变量读取密钥启动网关：
+
+```bash
+export HOOKLAB_SECRET=local-secret
+moon run --target js cmd/hooklab -- config-check examples/gateway/config.json
+moon run --target js cmd/hooklab -- serve-config examples/gateway/config.json
+```
+
+配置文件可以声明提供方、端口、数据目录和按 JSON 内容匹配的投递路由，但拒绝保存明文密钥。打开 `http://127.0.0.1:8787/` 查看控制台，向 `POST /hooks/generic-hmac` 发送事件。网关会原子保存状态，在临时错误后按指数退避重试，超过上限进入死信队列，并支持人工恢复。完整字段说明见 [配置文档](docs/CONFIGURATION.md) 和 [Gateway 运维文档](docs/GATEWAY.md)。
+
+临时演示仍可直接传入目标：
 
 ```bash
 moon run --target js cmd/hooklab -- serve generic local-secret http://127.0.0.1:9090/target 8787 .hooklab-data
 ```
-
-打开 `http://127.0.0.1:8787/` 查看控制台，向 `POST /hooks/generic-hmac` 发送事件。多个目标可用逗号分隔，事件会扇出为彼此独立的投递任务。网关会原子保存状态，在临时错误后按指数退避重试，超过上限进入死信队列，并支持人工恢复。完整说明见 [Gateway 运维文档](docs/GATEWAY.md)。
 
 ## 30 秒上手
 
@@ -53,7 +61,8 @@ moon run --target js cmd/hooklab -- replay http://127.0.0.1:8787/webhook @exampl
 | 多平台验签 | GitHub、Stripe、飞书/Lark、通用 HMAC-SHA256 |
 | 密码学 | 纯 MoonBit SHA-256、HMAC-SHA256、常量时间摘要比较 |
 | 防重放 | 时间容差、未来时钟偏差、delivery ID TTL 幂等记录 |
-| 内容路由 | JSON 点路径的 equals / not-equals / exists / contains |
+| 内容路由 | JSON 点路径的 equals / not-equals / exists / contains / starts-with / ends-with |
+| 声明式配置 | 版本化 JSON、全量错误报告、环境变量密钥和命名路由 |
 | 隐私保护 | 嵌套 JSON 字段和 HTTP 头大小写不敏感脱敏 |
 | 可复现诊断 | 无密钥 replay fixture、机器可读 JSON、单文件离线 HTML |
 | 持久化网关 | 回环 HTTP 接收、原子状态快照、进程重启恢复 |
@@ -61,7 +70,7 @@ moon run --target js cmd/hooklab -- replay http://127.0.0.1:8787/webhook @exampl
 | 可靠交付 | 有界指数退避、Retry-After、死信恢复、事件回放 |
 | 契约测试 | 提供方、事件类型、Header、JSON 路径、大小限制的全量问题报告 |
 | 管理界面 | 脱敏事件 API、投递状态 API、本地 Web 控制台 |
-| CLI | sign、verify/inspect、report、route-test、contract-check、retry-plan、replay、serve |
+| CLI | sign、verify/inspect、report、route-test、contract-check、config-check、retry-plan、replay、serve、serve-config |
 
 ## 设计边界
 
@@ -71,7 +80,7 @@ moon run --target js cmd/hooklab -- replay http://127.0.0.1:8787/webhook @exampl
 - CLI 的 replay 是显式调试操作，不会绕过目标服务认证；它不会转发原始提供方签名，目标端应使用隔离的测试入口。
 - 当前按 UTF-8 文本处理请求体。任意二进制负载应在接入层保留原始字节后扩展 `WebhookRequest`。
 
-运行网关见 [docs/GATEWAY.md](docs/GATEWAY.md)，契约验证见 [docs/CONTRACTS.md](docs/CONTRACTS.md)，架构与扩展点见 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)，提供方协议见 [docs/PROVIDERS.md](docs/PROVIDERS.md)，威胁模型见 [SECURITY.md](SECURITY.md)，性能基线见 [BENCHMARK.md](BENCHMARK.md)，后续路线见 [docs/ROADMAP.md](docs/ROADMAP.md)，九月新增范围见 [docs/SEPTEMBER_SCOPE.md](docs/SEPTEMBER_SCOPE.md)。
+运行网关见 [docs/GATEWAY.md](docs/GATEWAY.md)，声明式配置见 [docs/CONFIGURATION.md](docs/CONFIGURATION.md)，契约验证见 [docs/CONTRACTS.md](docs/CONTRACTS.md)，架构与扩展点见 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)，提供方协议见 [docs/PROVIDERS.md](docs/PROVIDERS.md)，威胁模型见 [SECURITY.md](SECURITY.md)，性能基线见 [BENCHMARK.md](BENCHMARK.md)，后续路线见 [docs/ROADMAP.md](docs/ROADMAP.md)，九月新增范围见 [docs/SEPTEMBER_SCOPE.md](docs/SEPTEMBER_SCOPE.md)。
 
 ## 项目结构
 
@@ -83,6 +92,7 @@ hooklab/engine     幂等、路由、脱敏、重试、fixture
 hooklab/event      接收事件模型与查询存储
 hooklab/delivery   投递状态机、队列、重试和死信恢复
 hooklab/contract   Webhook 契约验证
+hooklab/config     版本化网关配置解析与全量校验
 hooklab/gateway    验签到持久化投递的领域编排
 hooklab/pipeline   安全处理顺序
 hooklab/report     JSON 与离线 HTML 诊断
@@ -98,6 +108,7 @@ moon check --target all --deny-warn
 moon test --target all
 moon build --target all --deny-warn
 node scripts/gateway-e2e.mjs
+node scripts/gateway-config-e2e.mjs
 node scripts/gateway-deadletter-e2e.mjs
 node scripts/gateway-restart-e2e.mjs
 ```

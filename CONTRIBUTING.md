@@ -11,6 +11,7 @@ moon check --target all --deny-warn
 moon test --target all
 moon build --target all --deny-warn
 node scripts/gateway-e2e.mjs
+node scripts/gateway-config-e2e.mjs
 node scripts/gateway-deadletter-e2e.mjs
 node scripts/gateway-restart-e2e.mjs
 ```
