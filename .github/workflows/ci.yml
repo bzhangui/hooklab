@@ -33,6 +33,9 @@ jobs:
       - name: Gateway delivery E2E
         timeout-minutes: 2
         run: node scripts/gateway-e2e.mjs
+      - name: Gateway configuration E2E
+        timeout-minutes: 2
+        run: node scripts/gateway-config-e2e.mjs
       - name: Gateway dead-letter E2E
         timeout-minutes: 2
         run: node scripts/gateway-deadletter-e2e.mjs
