@@ -1,4 +1,5 @@
 import {
+  "hooklab/hooklab/hooklab/config",
   "hooklab/hooklab/hooklab/contract",
   "hooklab/hooklab/hooklab/core",
   "hooklab/hooklab/hooklab/crypto",

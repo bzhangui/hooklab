@@ -1,0 +1,41 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "hooklab/hooklab/hooklab/config"
+
+import {
+  "hooklab/hooklab/hooklab/core",
+  "hooklab/hooklab/hooklab/engine",
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn config_result_json(ConfigResult) -> String
+
+pub fn parse_gateway_config(String) -> ConfigResult
+
+// Errors
+
+// Types and methods
+pub(all) struct ConfigIssue {
+  code : String
+  location : String
+  message : String
+} derive(Eq, @debug.Debug)
+
+pub(all) enum ConfigResult {
+  ConfigLoaded(GatewayConfig)
+  ConfigInvalid(Array[ConfigIssue])
+} derive(Eq, @debug.Debug)
+
+pub(all) struct GatewayConfig {
+  version : Int
+  provider : @core.Provider
+  secret_env : String
+  previous_secrets_env : String?
+  port : Int
+  data_dir : String
+  routes : Array[@engine.RouteRule]
+} derive(Eq, @debug.Debug)
+
+// Type aliases
+
+// Traits

@@ -1,0 +1,23 @@
+{
+  "version": 1,
+  "provider": "generic-hmac",
+  "secret_env": "HOOKLAB_SECRET",
+  "previous_secrets_env": "HOOKLAB_PREVIOUS_SECRETS",
+  "port": 8787,
+  "data_dir": ".hooklab-data",
+  "routes": [
+    {
+      "name": "paid-invoices",
+      "path": "kind",
+      "operator": "equals",
+      "expected": "invoice.paid",
+      "target": "http://127.0.0.1:9090/billing"
+    },
+    {
+      "name": "audit-all",
+      "path": "$",
+      "operator": "exists",
+      "target": "http://127.0.0.1:9091/audit"
+    }
+  ]
+}
