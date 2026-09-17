@@ -21,9 +21,11 @@ moon run --target js cmd/hooklab -- config-check examples/gateway/config.json
 moon run --target js cmd/hooklab -- serve-config examples/gateway/config.json
 ~~~
 
-The example demonstrates content-based named routes. See
+The example demonstrates content-based named routes and a bounded route
+transformation. See
 [CONFIGURATION.md](CONFIGURATION.md) for the version 1 schema, supported
-operators, defaults, and PowerShell commands.
+operators, defaults, transforms, and PowerShell commands. Transformation
+semantics are documented in [TRANSFORMS.md](TRANSFORMS.md).
 
 ### Positional command
 
@@ -72,9 +74,10 @@ checked before a result is returned.
 | POST | /api/deliveries/:id/retry | Reset a dead letter for delivery |
 | POST | /api/events/:id/replay | Create fresh work for an accepted event |
 
-The API deliberately omits raw bodies. Raw bodies are retained in the local
-state file only because authorized delivery and replay must preserve the exact
-payload. Protect the data directory as production-sensitive material.
+The API deliberately omits raw and transformed bodies. Raw bodies and any
+route-specific transformed outputs are retained in the local state file because
+authorized delivery and replay must preserve the exact payload. Protect the
+data directory as production-sensitive material.
 
 ## Delivery behavior
 
@@ -88,6 +91,8 @@ payload. Protect the data directory as production-sensitive material.
 - Exhausted and permanent failures become dead letters.
 - In-flight work is changed to scheduled work when a process restarts.
 - State updates use a temporary file followed by an atomic rename.
+- A route-specific transformed body is reused for retries and manual replay.
+- Transformation failure returns HTTP 422 before idempotency or persistence.
 
 These rules provide at-least-once delivery. Consumers must use
 X-HookLab-Delivery-Id or X-HookLab-Event-Id for downstream idempotency.
@@ -110,6 +115,7 @@ node scripts/gateway-deadletter-e2e.mjs
 node scripts/gateway-restart-e2e.mjs
 ~~~
 
-The tests start temporary loopback services, validate configuration, reject the first two delivery
+The tests start temporary loopback services, validate configuration, assert the
+exact transformed body delivered to a receiver, reject the first two delivery
 attempts, confirm eventual success, check duplicate suppression and API
 redaction, verify a durable state file, and remove their temporary data.

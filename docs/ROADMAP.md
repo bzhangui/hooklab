@@ -14,7 +14,7 @@ implied capability of the current release.
 ## 0.3 — Configurable operations (in progress)
 
 - [x] Versioned declarative gateway configuration
-- [ ] Rule-based transforms with explicit size and execution budgets
+- [x] Rule-based transforms with explicit size and execution budgets
 - [ ] Per-target concurrency and rate limits
 - [ ] Circuit breaking and delivery latency histograms
 - [ ] Export/import and retention controls

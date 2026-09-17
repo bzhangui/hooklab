@@ -32,8 +32,11 @@ The September cycle turns the security toolkit into an event-delivery platform:
 After initial review, development continued in the same event-delivery
 direction with version 1 declarative gateway configuration, environment-only
 secret references, named content routes, CLI validation, and an end-to-end
-configured startup test. These commits extend the accepted project rather than
-replacing its subject or repository.
+configured startup test. Development then added per-route deterministic JSON
+transformations with mandatory input, output, and operation-count budgets,
+atomic failure semantics, stable replay outputs, cross-target tests, and an
+end-to-end delivery assertion. These commits extend the accepted project rather
+than replacing its subject or repository.
 
 ## Acceptance evidence
 

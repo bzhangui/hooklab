@@ -9,11 +9,12 @@ The implementation validates signature syntax and compares fixed-length digests 
 ## Boundaries and residual risks
 
 - The core in-memory stores are process-local. The gateway adapter adds atomic single-node snapshots and restart recovery, but distributed deployments still require transactional shared storage.
-- The gateway state file contains authenticated raw bodies because exact delivery and replay require them. Protect the data directory as production-sensitive material; public APIs expose only redacted copies.
+- The gateway state file contains authenticated raw bodies and may contain route-specific transformed bodies because exact delivery and replay require them. Protect the data directory as production-sensitive material; public APIs expose neither body and show only redacted event copies.
 - The built-in management server has no user authentication and therefore binds only to `127.0.0.1`. Remote deployments require an authenticated TLS reverse proxy and access control for `/api/*`.
 - Constant-time comparison reduces timing leakage in digest comparison, but a managed runtime and surrounding application can still introduce side channels. Do not expose detailed timing measurements.
 - CLI secrets can be visible in shell history and process listings. Use `HOOKLAB_SECRET`/`HOOKLAB_PREVIOUS_SECRETS`, library integration, or a secret manager instead.
 - Version 1 gateway configuration accepts only environment-variable names for secrets and rejects inline `secret`/`secrets` fields. Keep local environment files out of version control.
+- Route transforms are fixed set/remove/copy operations with mandatory byte and operation budgets. They run only after verification and complete before idempotency or persistence; failures return no partial output or side effects.
 - Delivery targets are trusted startup configuration. If targets become tenant-controlled, add an HTTP(S) allowlist, DNS rebinding protection, private-network policy, and redirect restrictions before enabling them.
 - The server limits request bodies to one MiB, but ingress rate limiting, tenant quotas, TLS termination, and multi-instance coordination are deployment responsibilities.
 - Delivery is at least once. Downstream consumers must deduplicate with the HookLab delivery or event identifier.

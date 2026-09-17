@@ -3,7 +3,8 @@
 HookLab configuration version 1 moves repeatable gateway settings out of a
 long command line while keeping secret values out of the repository. The file
 selects one authenticated provider, a loopback port, a state directory, and
-one or more content-based delivery routes.
+one or more content-based delivery routes. A route may also define a bounded,
+deterministic JSON transformation.
 
 ## Validate before starting
 
@@ -58,10 +59,23 @@ Each route has these fields:
 | `operator` | yes | `equals`, `not-equals`, `exists`, `contains`, `starts-with`, or `ends-with` |
 | `expected` | except `exists` | String compared with the selected scalar value |
 | `target` | yes | Trusted HTTP(S) delivery endpoint |
+| `transform` | no | Route-specific set/remove/copy plan with mandatory budgets |
 
 Array indexes are accepted in dot paths, for example `items.0.sku`. If several
 routes match, HookLab creates independent delivery work for each distinct
 target. A target is never derived from the incoming payload.
+
+## Bounded route transforms
+
+A route may transform its delivery body after signature verification. Every
+transform must declare `max_input_bytes`, `max_output_bytes`, and
+`max_operations`; plans without explicit budgets are rejected during
+`config-check`. Supported operations are `set`, `remove`, and `copy`.
+
+Transformations complete before idempotency and persistence. A missing path,
+invalid JSON document, or budget overrun rejects the whole request without
+creating an event or delivery. See [TRANSFORMS.md](TRANSFORMS.md) for the
+complete schema, failure behavior, replay semantics, and security boundary.
 
 ## Example
 
@@ -85,7 +99,15 @@ target. A target is never derived from the incoming payload.
       "name": "audit-all",
       "path": "$",
       "operator": "exists",
-      "target": "http://127.0.0.1:9091/audit"
+      "target": "http://127.0.0.1:9091/audit",
+      "transform": {
+        "max_input_bytes": 262144,
+        "max_output_bytes": 262144,
+        "max_operations": 1,
+        "operations": [
+          {"operation": "set", "path": "hooklab_route", "value": "audit-all"}
+        ]
+      }
     }
   ]
 }

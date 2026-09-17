@@ -16,20 +16,23 @@ provider signature ──失败──▶ stable error + remediation
 timestamp freshness ─失败──▶ reject replay/stale event
     │
     ▼
+JSON route matching + bounded transform ─失败──▶ 422, no side effects
+    │
+    ▼
 delivery-id check-and-record ─重复──▶ acknowledge, no side effects
     │
     ▼
 accepted event ──▶ atomic snapshot ──▶ redacted management view
     │
     ▼
-JSON route matching ──▶ delivery queue
+delivery queue
     │
     ├──2xx──────────────────────────▶ delivered
     ├──408/425/429/5xx/transport────▶ scheduled retry
     └──permanent/exhausted──────────▶ dead letter ──▶ manual recovery
 ```
 
-顺序属于安全属性：只有验签成功的数据才能污染幂等表；只有首次出现的 delivery ID 才能触发副作用；脱敏副本用于诊断，已验签原文只留在当前交付路径。
+顺序属于安全属性：只有验签成功的数据才能进入路由和转换；所有匹配路由的转换都必须在写入幂等记录前完成，因此超限或缺失路径不会留下部分状态；只有首次出现的 delivery ID 才能触发副作用。管理接口只使用脱敏副本，原始正文和按路由生成的正文仅保存在受保护的本地交付状态中。
 
 ## 包边界
 
@@ -41,7 +44,8 @@ JSON route matching ──▶ delivery queue
 - `delivery` 定义可持久化的投递生命周期、领取规则和死信恢复。
 - `contract` 校验事件传输契约，并一次返回全部问题。
 - `config` 解析版本化部署配置，拒绝明文密钥并聚合字段错误。
-- `gateway` 固化验签、幂等、持久化、路由和任务创建的顺序。
+- `transform` 执行 set/remove/copy JSON 规则并强制输入、输出与操作数预算。
+- `gateway` 固化验签、路由转换、幂等、持久化和任务创建的顺序。
 - `pipeline` 保留轻量库使用场景的安全处理入口。
 - `report` 只接收处理结果，不能访问密钥。
 - `cmd/hooklab` 提供 JS/Node I/O 适配、本地持久化、管理 API 与控制台。

@@ -10,6 +10,9 @@ All notable changes are documented here. HookLab follows semantic versioning.
 - `config-check` full-issue validation and `serve-config` runtime startup.
 - Environment-variable-only secret references; inline secrets are rejected.
 - Cross-platform configuration tests and a runnable configuration E2E test.
+- Per-route deterministic JSON set, remove, and copy transformations.
+- Explicit UTF-8 input, output, and operation-count budgets with atomic rejection.
+- Persisted route-specific outputs that remain stable during manual replay.
 
 ## 0.2.0 — September 2026 maintenance cycle
 
