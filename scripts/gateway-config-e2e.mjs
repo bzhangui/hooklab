@@ -55,6 +55,16 @@ fs.writeFileSync(
         operator: "equals",
         expected: "invoice.paid",
         target,
+        transform: {
+          max_input_bytes: 4096,
+          max_output_bytes: 4096,
+          max_operations: 3,
+          operations: [
+            {operation: "copy", from: "invoice_id", path: "metadata.invoice_id"},
+            {operation: "remove", path: "customer.email"},
+            {operation: "set", path: "source", value: "hooklab"},
+          ],
+        },
       },
     ],
   }),
@@ -71,12 +81,19 @@ assert.equal(checked.status, 0, checked.stderr);
 const summary = JSON.parse(checked.stdout.trim().split(/\r?\n/).at(-1));
 assert.equal(summary.valid, true);
 assert.equal(summary.routes, 1);
+assert.equal(summary.transforms, 1);
 
 let received = 0;
-const receiver = http.createServer((_req, res) => {
-  received++;
-  res.writeHead(204);
-  res.end();
+const receivedPayloads = [];
+const receiver = http.createServer((req, res) => {
+  const chunks = [];
+  req.on("data", chunk => chunks.push(chunk));
+  req.on("end", () => {
+    received++;
+    receivedPayloads.push(JSON.parse(Buffer.concat(chunks).toString("utf8")));
+    res.writeHead(204);
+    res.end();
+  });
 });
 await new Promise(resolve => receiver.listen(receiverPort, "127.0.0.1", resolve));
 
@@ -96,25 +113,49 @@ try {
     "http://127.0.0.1:" + gatewayPort + "/health",
     value => value.status === "ok",
   );
-  const timestamp = Math.floor(Date.now() / 1000).toString();
-  const body = JSON.stringify({kind: "invoice.paid", amount: 4200});
-  const signature = crypto.createHmac("sha256", "config-secret")
-    .update(timestamp + "." + body)
-    .digest("hex");
-  const accepted = await fetch(
-    "http://127.0.0.1:" + gatewayPort + "/hooks/generic-hmac",
-    {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        "x-webhook-signature": "sha256=" + signature,
-        "x-webhook-timestamp": timestamp,
-        "x-webhook-id": "configured-event-1",
-        "x-webhook-event": "invoice.paid",
+  const send = (id, body) => {
+    const timestamp = Math.floor(Date.now() / 1000).toString();
+    const signature = crypto.createHmac("sha256", "config-secret")
+      .update(timestamp + "." + body)
+      .digest("hex");
+    return fetch(
+      "http://127.0.0.1:" + gatewayPort + "/hooks/generic-hmac",
+      {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-webhook-signature": "sha256=" + signature,
+          "x-webhook-timestamp": timestamp,
+          "x-webhook-id": id,
+          "x-webhook-event": "invoice.paid",
+        },
+        body,
       },
-      body,
-    },
-  );
+    );
+  };
+  const rejectedBody = JSON.stringify({
+    kind: "invoice.paid",
+    invoice_id: "inv-rejected",
+    customer: {},
+    metadata: {},
+  });
+  const rejected = await send("configured-rejected-1", rejectedBody);
+  assert.equal(rejected.status, 422);
+  assert.equal((await rejected.json()).code, "invalid_payload");
+  const emptyStats = await fetch(
+    "http://127.0.0.1:" + gatewayPort + "/api/stats",
+  ).then(response => response.json());
+  assert.equal(emptyStats.events, 0);
+  assert.equal(emptyStats.pending, 0);
+
+  const body = JSON.stringify({
+    kind: "invoice.paid",
+    invoice_id: "inv-config-1",
+    amount: 4200,
+    customer: {email: "private@example.test"},
+    metadata: {},
+  });
+  const accepted = await send("configured-event-1", body);
   assert.equal(accepted.status, 202);
   const acceptance = await accepted.json();
   assert.equal(acceptance.deliveries, 1);
@@ -125,6 +166,32 @@ try {
   );
   assert.equal(deliveries[0].target, target);
   assert.equal(received, 1);
+  const expectedPayload = {
+    kind: "invoice.paid",
+    invoice_id: "inv-config-1",
+    amount: 4200,
+    customer: {},
+    metadata: {invoice_id: "inv-config-1"},
+    source: "hooklab",
+  };
+  assert.deepEqual(receivedPayloads[0], expectedPayload);
+
+  const events = await fetch(
+    "http://127.0.0.1:" + gatewayPort + "/api/events",
+  ).then(response => response.json());
+  const replay = await fetch(
+    "http://127.0.0.1:" + gatewayPort + "/api/events/" +
+      encodeURIComponent(events[0].id) + "/replay",
+    {method: "POST"},
+  );
+  assert.equal(replay.status, 202);
+  assert.equal((await replay.json()).replayed, 1);
+  await waitFor(
+    "http://127.0.0.1:" + gatewayPort + "/api/deliveries",
+    value => value.length === 2 && value.every(item => item.state === "delivered"),
+  );
+  assert.equal(received, 2);
+  assert.deepEqual(receivedPayloads[1], expectedPayload);
   assert.equal(fs.existsSync(path.join(stateDir, "state.json")), true);
   console.log("Gateway declarative configuration E2E passed.");
 } finally {
