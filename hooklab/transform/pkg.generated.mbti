@@ -1,0 +1,61 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "hooklab/hooklab/hooklab/transform"
+
+import {
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn apply(String, Array[TransformOperation], TransformBudget) -> TransformResult
+
+pub fn failure_code_name(TransformFailureCode) -> String
+
+pub fn valid_path(String) -> Bool
+
+// Errors
+
+// Types and methods
+pub(all) struct RouteTransform {
+  route_name : String
+  operations : Array[TransformOperation]
+  budget : TransformBudget
+} derive(Eq, @debug.Debug)
+
+pub(all) struct TransformBudget {
+  max_input_bytes : Int
+  max_output_bytes : Int
+  max_operations : Int
+} derive(Eq, @debug.Debug)
+pub fn TransformBudget::safe_default() -> Self
+
+pub(all) struct TransformFailure {
+  code : TransformFailureCode
+  operation_index : Int?
+  path : String
+  message : String
+} derive(Eq, @debug.Debug)
+
+pub(all) enum TransformFailureCode {
+  InvalidBudget
+  InvalidJson
+  InputTooLarge
+  OperationLimitExceeded
+  InvalidPath
+  PathNotFound
+  OutputTooLarge
+} derive(Eq, @debug.Debug)
+
+pub(all) enum TransformOperation {
+  SetValue(String, Json)
+  Remove(String)
+  Copy(String, String)
+} derive(Eq, @debug.Debug)
+
+pub(all) enum TransformResult {
+  Transformed(String, Int)
+  TransformRejected(TransformFailure)
+} derive(Eq, @debug.Debug)
+
+// Type aliases
+
+// Traits

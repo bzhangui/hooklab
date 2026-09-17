@@ -21,11 +21,21 @@ pub struct Gateway {
   event_store : @event.EventStore
   delivery_queue : @delivery.DeliveryQueue
   routes : Array[@engine.RouteRule]
+  transforms : Array[@transform.RouteTransform]
 }
 
 ///|
 pub fn Gateway::new(
   routes : Array[@engine.RouteRule],
+  idempotency_ttl_seconds? : Int64 = 86400L,
+) -> Gateway {
+  Gateway::new_with_transforms(routes, [], idempotency_ttl_seconds~)
+}
+
+///|
+pub fn Gateway::new_with_transforms(
+  routes : Array[@engine.RouteRule],
+  transforms : Array[@transform.RouteTransform],
   idempotency_ttl_seconds? : Int64 = 86400L,
 ) -> Gateway {
   {
@@ -35,6 +45,7 @@ pub fn Gateway::new(
     event_store: @event.EventStore::new(),
     delivery_queue: @delivery.DeliveryQueue::new(),
     routes,
+    transforms,
   }
 }
 
@@ -76,9 +87,40 @@ fn duplicate_failure() -> @core.VerificationFailure {
 }
 
 ///|
-/// Accepts a request into the event-delivery domain. Verification happens
-/// before idempotency state is touched, and only verified events are persisted
-/// or expanded into delivery work.
+fn Gateway::transform_for_route(
+  self : Gateway,
+  route_name : String,
+) -> @transform.RouteTransform? {
+  for plan in self.transforms {
+    if plan.route_name == route_name {
+      return Some(plan)
+    }
+  }
+  None
+}
+
+///|
+fn transformation_failure(
+  route_name : String,
+  failure : @transform.TransformFailure,
+) -> @core.VerificationFailure {
+  {
+    code: @core.InvalidPayload,
+    stage: @core.Routing,
+    message: "Route " +
+    route_name +
+    " rejected its transformation: " +
+    @transform.failure_code_name(failure.code) +
+    ". " +
+    failure.message,
+    suggestion: "Adjust the route transformation or its explicit execution budgets before retrying.",
+  }
+}
+
+///|
+/// Accepts a request into the event-delivery domain. Verification and every
+/// matched route transformation complete before idempotency is recorded. A
+/// rejected transformation therefore creates no persistent side effects.
 pub fn Gateway::accept(
   self : Gateway,
   request : @core.WebhookRequest,
@@ -91,6 +133,19 @@ pub fn Gateway::accept(
     @providers.verify_with_secrets(request, secrets, policy=verification_policy) {
     @core.Verified(event) => event
     @core.Rejected(failure) => return Rejected(failure)
+  }
+  let routed : Array[(@engine.RouteMatch, String?)] = []
+  for matched in @engine.route(verified.body, self.routes) {
+    let payload : String? = match self.transform_for_route(matched.rule_name) {
+      None => None
+      Some(plan) =>
+        match @transform.apply(verified.body, plan.operations, plan.budget) {
+          @transform.Transformed(body, _) => Some(body)
+          @transform.TransformRejected(failure) =>
+            return Rejected(transformation_failure(matched.rule_name, failure))
+        }
+    }
+    routed.push((matched, payload))
   }
   match verified.delivery_id {
     Some(id) =>
@@ -120,9 +175,17 @@ pub fn Gateway::accept(
     return Rejected(duplicate_failure())
   }
   let created : Array[@delivery.Delivery] = []
-  for matched in @engine.route(verified.body, self.routes) {
+  for item in routed {
+    let matched = item.0
+    let payload = item.1
     let id = delivery_identifier(event_id, matched.target)
-    if self.delivery_queue.enqueue(id, event_id, matched.target, now_ms) ==
+    if self.delivery_queue.enqueue(
+        id,
+        event_id,
+        matched.target,
+        now_ms,
+        payload~,
+      ) ==
       @delivery.Enqueued {
       match self.delivery_queue.get(id) {
         Some(item) => created.push(item)

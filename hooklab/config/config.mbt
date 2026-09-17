@@ -7,6 +7,7 @@ pub(all) struct GatewayConfig {
   port : Int
   data_dir : String
   routes : Array[@engine.RouteRule]
+  route_transforms : Array[@transform.RouteTransform]
 } derive(Eq, Debug)
 
 ///|
@@ -202,6 +203,7 @@ pub fn parse_gateway_config(text : String) -> ConfigResult {
     }
   }
   let routes : Array[@engine.RouteRule] = []
+  let route_transforms : Array[@transform.RouteTransform] = []
   let route_names : Array[String] = []
   match field(root, "routes") {
     Some(Array(items)) => {
@@ -318,8 +320,13 @@ pub fn parse_gateway_config(text : String) -> ConfigResult {
           }
           if valid {
             match operator {
-              Some(parsed) =>
+              Some(parsed) => {
                 routes.push({ name, path, operator: parsed, expected, target, })
+                match parse_route_transform(item, name, location, issues) {
+                  Some(plan) => route_transforms.push(plan)
+                  None => ()
+                }
+              }
               None => ()
             }
           }
@@ -346,6 +353,7 @@ pub fn parse_gateway_config(text : String) -> ConfigResult {
           port,
           data_dir,
           routes,
+          route_transforms,
         })
       None => ConfigInvalid(issues)
     }
@@ -391,6 +399,8 @@ pub fn config_result_json(result : ConfigResult) -> String {
       json_string(value.secret_env) +
       ",\"routes\":" +
       value.routes.length().to_string() +
+      ",\"transforms\":" +
+      value.route_transforms.length().to_string() +
       "}"
     ConfigInvalid(issues) => {
       let values : Array[String] = []

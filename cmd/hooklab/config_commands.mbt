@@ -73,7 +73,10 @@ fn serve_configured_gateway(args : Array[String]) -> Unit {
         set_exit_code(1)
         return
       }
-      let gateway = @gateway.Gateway::new(value.routes)
+      let gateway = @gateway.Gateway::new_with_transforms(
+        value.routes,
+        value.route_transforms,
+      )
       println(
         "Loaded gateway configuration version " +
         value.version.to_string() +

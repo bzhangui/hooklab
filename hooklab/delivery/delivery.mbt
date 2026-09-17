@@ -15,6 +15,7 @@ pub(all) struct Delivery {
   id : String
   event_id : String
   target : String
+  payload : String?
   ordering_key : String?
   attempt : Int
   state : DeliveryState
@@ -84,6 +85,7 @@ pub fn DeliveryQueue::enqueue(
   event_id : String,
   target : String,
   now_ms : Int64,
+  payload? : String? = None,
   ordering_key? : String? = None,
 ) -> EnqueueResult {
   if id.trim().is_empty() ||
@@ -98,6 +100,7 @@ pub fn DeliveryQueue::enqueue(
     id,
     event_id,
     target,
+    payload,
     ordering_key,
     attempt: 0,
     state: Pending,

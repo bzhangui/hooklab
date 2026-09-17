@@ -16,6 +16,7 @@ pub(all) struct Delivery {
   id : String
   event_id : String
   target : String
+  payload : String?
   ordering_key : String?
   attempt : Int
   state : DeliveryState
@@ -32,7 +33,7 @@ pub struct DeliveryQueue {
 pub fn DeliveryQueue::all(Self) -> Array[Delivery]
 pub fn DeliveryQueue::cancel(Self, String, Int64) -> UpdateResult
 pub fn DeliveryQueue::claim_due(Self, Int64, limit? : Int) -> Array[Delivery]
-pub fn DeliveryQueue::enqueue(Self, String, String, String, Int64, ordering_key? : String?) -> EnqueueResult
+pub fn DeliveryQueue::enqueue(Self, String, String, String, Int64, payload? : String?, ordering_key? : String?) -> EnqueueResult
 pub fn DeliveryQueue::get(Self, String) -> Delivery?
 pub fn DeliveryQueue::new() -> Self
 pub fn DeliveryQueue::record_outcome(Self, String, @engine.AttemptOutcome, Int64, retry_after? : String?, policy? : @engine.RetryPolicy) -> UpdateResult

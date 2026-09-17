@@ -78,8 +78,9 @@ extern "js" fn run_gateway_runtime(
   #|   function enqueueReplay(event, existing) {
   #|     const now = Date.now();
   #|     const sequence = state.deliveries.length + 1;
-  #|     for (const target of event.targets) {
-  #|       state.deliveries.push({id: "delivery:" + hash(event.id + "\n" + target + "\n" + now + "\n" + sequence), eventId: event.id, target, state: "pending", attempt: 0, nextAttemptAt: now, lastStatus: null, lastError: existing ? "manual replay" : null, createdAt: now, updatedAt: now});
+  #|     const outputs = Array.isArray(event.outputs) ? event.outputs : event.targets.map(target => ({target, payload: null}));
+  #|     for (const output of outputs) {
+  #|       state.deliveries.push({id: "delivery:" + hash(event.id + "\n" + output.target + "\n" + now + "\n" + sequence), eventId: event.id, target: output.target, payload: typeof output.payload === "string" ? output.payload : null, state: "pending", attempt: 0, nextAttemptAt: now, lastStatus: null, lastError: existing ? "manual replay" : null, createdAt: now, updatedAt: now});
   #|     }
   #|   }
   #|   let pumping = false;
@@ -99,7 +100,8 @@ extern "js" fn run_gateway_runtime(
   #|     let transportError = "";
   #|     try {
   #|       if (!event) throw new Error("event payload is missing");
-  #|       const response = await fetch(item.target, {method: "POST", headers: {"content-type": "application/json", "x-hooklab-event-id": event.id, "x-hooklab-delivery-id": item.id, "x-hooklab-event-type": event.eventType}, body: event.body, signal: AbortSignal.timeout(15000)});
+  #|       const payload = typeof item.payload === "string" ? item.payload : event.body;
+  #|       const response = await fetch(item.target, {method: "POST", headers: {"content-type": "application/json", "x-hooklab-event-id": event.id, "x-hooklab-delivery-id": item.id, "x-hooklab-event-type": event.eventType}, body: payload, signal: AbortSignal.timeout(15000)});
   #|       status = response.status;
   #|       retryAfter = response.headers.get("retry-after") || "";
   #|       await response.arrayBuffer();
@@ -158,13 +160,17 @@ extern "js" fn run_gateway_runtime(
   #|       let accepted;
   #|       try { accepted = JSON.parse(handler(decodeURIComponent(hookMatch[1]), handlerHeaders(req.headers), body, BigInt(Math.floor(Date.now() / 1000)))); }
   #|       catch (error) { return json(res, 500, {error: "gateway_handler_failed", message: String(error)}); }
-  #|       if (!accepted.accepted) return json(res, accepted.code === "replay_detected" ? 200 : 401, accepted);
+  #|       if (!accepted.accepted) {
+  #|         const status = accepted.code === "replay_detected" ? 200 : accepted.code === "invalid_payload" ? 422 : 401;
+  #|         return json(res, status, accepted);
+  #|       }
   #|       const previous = state.events.find(x => x.id === accepted.event_id);
   #|       if (previous) return json(res, 200, {accepted: true, duplicate: true, eventId: previous.id});
-  #|       const targets = accepted.deliveries.map(x => x.target);
-  #|       const event = {id: accepted.event_id, provider: accepted.provider, eventType: accepted.event_type, deliveryId: accepted.delivery_id, body, redactedBody: accepted.redacted_body, headers: safeHeaders(req.headers), receivedAt: Date.now(), targets};
+  #|       const outputs = accepted.deliveries.map(x => ({target: x.target, payload: typeof x.payload === "string" ? x.payload : null}));
+  #|       const targets = outputs.map(x => x.target);
+  #|       const event = {id: accepted.event_id, provider: accepted.provider, eventType: accepted.event_type, deliveryId: accepted.delivery_id, body, redactedBody: accepted.redacted_body, headers: safeHeaders(req.headers), receivedAt: Date.now(), targets, outputs};
   #|       state.events.push(event);
-  #|       for (const work of accepted.deliveries) state.deliveries.push({id: work.id, eventId: event.id, target: work.target, state: "pending", attempt: 0, nextAttemptAt: Date.now(), lastStatus: null, lastError: null, createdAt: Date.now(), updatedAt: Date.now()});
+  #|       for (const work of accepted.deliveries) state.deliveries.push({id: work.id, eventId: event.id, target: work.target, payload: typeof work.payload === "string" ? work.payload : null, state: "pending", attempt: 0, nextAttemptAt: Date.now(), lastStatus: null, lastError: null, createdAt: Date.now(), updatedAt: Date.now()});
   #|       save();
   #|       return json(res, 202, {accepted: true, duplicate: false, eventId: event.id, deliveries: accepted.deliveries.length});
   #|     }

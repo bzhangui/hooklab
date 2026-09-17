@@ -4,6 +4,7 @@ package "hooklab/hooklab/hooklab/config"
 import {
   "hooklab/hooklab/hooklab/core",
   "hooklab/hooklab/hooklab/engine",
+  "hooklab/hooklab/hooklab/transform",
   "moonbitlang/core/debug",
 }
 
@@ -34,6 +35,7 @@ pub(all) struct GatewayConfig {
   port : Int
   data_dir : String
   routes : Array[@engine.RouteRule]
+  route_transforms : Array[@transform.RouteTransform]
 } derive(Eq, @debug.Debug)
 
 // Type aliases

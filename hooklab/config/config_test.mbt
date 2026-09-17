@@ -47,6 +47,7 @@ test "applies safe environment and runtime defaults" {
       assert_eq(value.port, 8787)
       assert_eq(value.data_dir, ".hooklab-data")
       assert_eq(value.routes[0].path, "$")
+      assert_true(value.route_transforms.is_empty())
     }
     ConfigInvalid(_) => fail("expected valid defaults")
   }

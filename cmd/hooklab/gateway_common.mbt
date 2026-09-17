@@ -97,6 +97,11 @@ fn gateway_accept_json(
           gateway_json_string(delivery.id) +
           ",\"target\":" +
           gateway_json_string(delivery.target) +
+          ",\"payload\":" +
+          (match delivery.payload {
+            Some(value) => gateway_json_string(value)
+            None => "null"
+          }) +
           "}",
         )
       }

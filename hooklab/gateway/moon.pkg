@@ -5,4 +5,5 @@ import {
   "hooklab/hooklab/hooklab/engine",
   "hooklab/hooklab/hooklab/event",
   "hooklab/hooklab/hooklab/providers",
+  "hooklab/hooklab/hooklab/transform",
 }
