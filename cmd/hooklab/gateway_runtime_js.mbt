@@ -4,9 +4,11 @@ extern "js" fn run_gateway_runtime(
   data_dir : String,
   handler : (String, String, String, Int64) -> String,
   decision : (Int, Int, String, String) -> String,
+  acquire : (String, Int64) -> Bool,
+  release : (String) -> Unit,
   dashboard : String,
 ) -> Unit =
-  #| function(port, dataDir, handler, decision, dashboard) {
+  #| function(port, dataDir, handler, decision, acquire, release, dashboard) {
   #|   const http = require("node:http");
   #|   const fs = require("node:fs");
   #|   const path = require("node:path");
@@ -83,17 +85,8 @@ extern "js" fn run_gateway_runtime(
   #|       state.deliveries.push({id: "delivery:" + hash(event.id + "\n" + output.target + "\n" + now + "\n" + sequence), eventId: event.id, target: output.target, payload: typeof output.payload === "string" ? output.payload : null, state: "pending", attempt: 0, nextAttemptAt: now, lastStatus: null, lastError: existing ? "manual replay" : null, createdAt: now, updatedAt: now});
   #|     }
   #|   }
-  #|   let pumping = false;
-  #|   async function pump() {
-  #|     if (pumping) return;
-  #|     const now = Date.now();
-  #|     const item = state.deliveries.find(x => (x.state === "pending" || x.state === "scheduled") && x.nextAttemptAt <= now);
-  #|     if (!item) return;
-  #|     pumping = true;
-  #|     item.state = "in_flight";
-  #|     item.attempt++;
-  #|     item.updatedAt = now;
-  #|     save();
+  #|   async function deliver(item) {
+  #|     try {
   #|     const event = state.events.find(x => x.id === item.eventId);
   #|     let status = 0;
   #|     let retryAfter = "";
@@ -125,9 +118,37 @@ extern "js" fn run_gateway_runtime(
   #|       item.lastError = result.reason || transportError || ("HTTP " + status);
   #|     }
   #|     save();
-  #|     pumping = false;
+  #|     } finally {
+  #|       release(item.target);
+  #|     }
   #|   }
-  #|   setInterval(() => pump().catch(error => { pumping = false; console.error(error); }), 250);
+  #|   let scanning = false;
+  #|   function pump() {
+  #|     if (scanning) return;
+  #|     scanning = true;
+  #|     try {
+  #|       const now = Date.now();
+  #|       for (const item of state.deliveries) {
+  #|         if ((item.state !== "pending" && item.state !== "scheduled") || item.nextAttemptAt > now) continue;
+  #|         if (!acquire(item.target, BigInt(now))) continue;
+  #|         try {
+  #|           item.state = "in_flight";
+  #|           item.attempt++;
+  #|           item.updatedAt = now;
+  #|           save();
+  #|         } catch (error) {
+  #|           release(item.target);
+  #|           throw error;
+  #|         }
+  #|         void deliver(item).catch(error => console.error(error));
+  #|       }
+  #|     } finally {
+  #|       scanning = false;
+  #|     }
+  #|   }
+  #|   const pumpTimer = setInterval(() => {
+  #|     try { pump(); } catch (error) { console.error(error); }
+  #|   }, 250);
   #|   const server = http.createServer(async (req, res) => {
   #|     const url = new URL(req.url || "/", "http://127.0.0.1");
   #|     if (req.method === "GET" && url.pathname === "/") {
@@ -179,7 +200,7 @@ extern "js" fn run_gateway_runtime(
   #|   server.requestTimeout = 20000;
   #|   server.headersTimeout = 10000;
   #|   server.listen(port, "127.0.0.1");
-  #|   const shutdown = signal => server.close(() => { save(); console.log("HookLab Gateway stopped by " + signal); });
+  #|   const shutdown = signal => { clearInterval(pumpTimer); server.close(() => { save(); console.log("HookLab Gateway stopped by " + signal); }); };
   #|   process.once("SIGINT", () => shutdown("SIGINT"));
   #|   process.once("SIGTERM", () => shutdown("SIGTERM"));
   #| }

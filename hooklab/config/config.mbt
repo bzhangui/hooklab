@@ -8,6 +8,7 @@ pub(all) struct GatewayConfig {
   data_dir : String
   routes : Array[@engine.RouteRule]
   route_transforms : Array[@transform.RouteTransform]
+  delivery_limits : Array[@delivery.TargetLimit]
 } derive(Eq, Debug)
 
 ///|
@@ -342,6 +343,7 @@ pub fn parse_gateway_config(text : String) -> ConfigResult {
         issues, "missing_routes", "routes", "The routes field must be a non-empty array.",
       )
   }
+  let delivery_limits = parse_delivery_limits(root, routes, issues)
   if issues.is_empty() {
     match provider {
       Some(parsed) =>
@@ -354,6 +356,7 @@ pub fn parse_gateway_config(text : String) -> ConfigResult {
           data_dir,
           routes,
           route_transforms,
+          delivery_limits,
         })
       None => ConfigInvalid(issues)
     }
@@ -401,6 +404,8 @@ pub fn config_result_json(result : ConfigResult) -> String {
       value.routes.length().to_string() +
       ",\"transforms\":" +
       value.route_transforms.length().to_string() +
+      ",\"delivery_limits\":" +
+      value.delivery_limits.length().to_string() +
       "}"
     ConfigInvalid(issues) => {
       let values : Array[String] = []

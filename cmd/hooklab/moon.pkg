@@ -3,6 +3,7 @@ import {
   "hooklab/hooklab/hooklab/contract",
   "hooklab/hooklab/hooklab/core",
   "hooklab/hooklab/hooklab/crypto",
+  "hooklab/hooklab/hooklab/delivery",
   "hooklab/hooklab/hooklab/engine",
   "hooklab/hooklab/hooklab/gateway",
   "hooklab/hooklab/hooklab/pipeline",

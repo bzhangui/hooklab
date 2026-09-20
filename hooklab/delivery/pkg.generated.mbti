@@ -49,11 +49,27 @@ pub(all) enum DeliveryState {
   Cancelled
 } derive(Eq, @debug.Debug)
 
+pub struct DispatchLimiter {
+  limits : Array[TargetLimit]
+  meters : Array[TargetMeter]
+}
+pub fn DispatchLimiter::new(Array[TargetLimit]) -> Self
+pub fn DispatchLimiter::release(Self, String) -> Unit
+pub fn DispatchLimiter::try_acquire(Self, String, Int64) -> Bool
+
 pub(all) enum EnqueueResult {
   Enqueued
   DuplicateDelivery
   InvalidDelivery
 } derive(Eq, @debug.Debug)
+
+pub(all) struct TargetLimit {
+  target : String
+  max_concurrency : Int
+  requests_per_second : Int
+} derive(Eq, @debug.Debug)
+
+type TargetMeter
 
 pub(all) enum UpdateResult {
   Updated

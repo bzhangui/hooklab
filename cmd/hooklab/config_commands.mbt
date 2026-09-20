@@ -94,6 +94,7 @@ fn serve_configured_gateway(args : Array[String]) -> Unit {
         "/hooks/" +
         @core.provider_name(value.provider),
       )
+      let limiter = @delivery.DispatchLimiter::new(value.delivery_limits)
       run_gateway_runtime(
         value.port,
         value.data_dir,
@@ -109,6 +110,8 @@ fn serve_configured_gateway(args : Array[String]) -> Unit {
           )
         },
         gateway_decision_json,
+        fn(target, now_ms) { limiter.try_acquire(target, now_ms) },
+        fn(target) { limiter.release(target) },
         gateway_dashboard_html(),
       )
     }
