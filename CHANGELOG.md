@@ -17,6 +17,11 @@ All notable changes are documented here. HookLab follows semantic versioning.
   including retries and manual replays, with a global 16-attempt ceiling.
 - End-to-end coverage for target isolation and limit enforcement.
 
+### Maintenance
+
+- Keep strict CI checks on current MoonBit toolchains while temporarily disabling
+  two legacy-API migration warnings; other warnings remain fatal.
+
 ## 0.2.0 — September 2026 maintenance cycle
 
 Baseline: 548c5e2 (0.1.0 functionality completed before this maintenance cycle).
