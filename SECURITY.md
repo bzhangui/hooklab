@@ -17,6 +17,10 @@ The implementation validates signature syntax and compares fixed-length digests 
 - Route transforms are fixed set/remove/copy operations with mandatory byte and operation budgets. They run only after verification and complete before idempotency or persistence; failures return no partial output or side effects.
 - Delivery targets are trusted startup configuration. If targets become tenant-controlled, add an HTTP(S) allowlist, DNS rebinding protection, private-network policy, and redirect restrictions before enabling them.
 - The server limits request bodies to one MiB. Outbound attempts have per-target concurrency and optional rate policies plus a global 16-attempt ceiling, but counters are process-local and reset on restart. Ingress rate limiting, tenant quotas, TLS termination, and multi-instance coordination remain deployment responsibilities.
+- Circuit breakers and latency metrics are process-local. The metrics endpoint
+  exposes only fixed-bucket counts and anonymous target labels; it does not
+  expose destination URLs, payloads, or headers. Management API access still
+  requires the loopback/proxy boundary above.
 - Delivery is at least once. Downstream consumers must deduplicate with the HookLab delivery or event identifier.
 - Redaction is key-based and cannot recognize every sensitive value. Configure additional field names for domain-specific data.
 

@@ -70,6 +70,8 @@ moon run --target js cmd/hooklab -- replay http://127.0.0.1:8787/webhook @exampl
 | 投递状态机 | pending / scheduled / in-flight / delivered / dead-lettered / cancelled |
 | 可靠交付 | 有界指数退避、Retry-After、死信恢复、事件回放 |
 | 目标限流 | 每目标并发与滑动一秒速率控制、进程级 16 路硬上限；重试和回放同样受限 |
+| 故障熔断 | 可选的按目标失败阈值、冷却与单次半开探测；其他目标继续投递 |
+| 耗时统计 | 管理 API 提供不含目标 URL 或正文的匿名固定桶聚合指标 |
 | 契约测试 | 提供方、事件类型、Header、JSON 路径、大小限制的全量问题报告 |
 | 管理界面 | 脱敏事件 API、投递状态 API、本地 Web 控制台 |
 | CLI | sign、verify/inspect、report、route-test、contract-check、config-check、retry-plan、replay、serve、serve-config |
@@ -81,7 +83,7 @@ moon run --target js cmd/hooklab -- replay http://127.0.0.1:8787/webhook @exampl
 - 密钥不会写入 fixture、报告或日志；诊断结果只保存脱敏内容。
 - 核心库提供确定性内存存储，内置网关提供单节点原子文件快照。多实例生产环境仍应将相同的 `check-and-record` 和投递状态语义落到具备唯一约束及事务的数据库。
 - CLI 的 replay 是显式调试操作，不会绕过目标服务认证；它不会转发原始提供方签名，目标端应使用隔离的测试入口。
-- 投递限流仅在单个进程内生效，重启后计数清零；多实例配额需要外部协调。
+- 投递限流、可选熔断和耗时指标仅在单个进程内生效，重启后计数清零；多实例配额需要外部协调。
 - 当前按 UTF-8 文本处理请求体。任意二进制负载应在接入层保留原始字节后扩展 `WebhookRequest`。
 
 运行网关见 [docs/GATEWAY.md](docs/GATEWAY.md)，声明式配置见 [docs/CONFIGURATION.md](docs/CONFIGURATION.md)，规则化转换见 [docs/TRANSFORMS.md](docs/TRANSFORMS.md)，契约验证见 [docs/CONTRACTS.md](docs/CONTRACTS.md)，架构与扩展点见 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)，提供方协议见 [docs/PROVIDERS.md](docs/PROVIDERS.md)，威胁模型见 [SECURITY.md](SECURITY.md)，性能基线见 [BENCHMARK.md](BENCHMARK.md)，后续路线见 [docs/ROADMAP.md](docs/ROADMAP.md)，九月新增范围见 [docs/SEPTEMBER_SCOPE.md](docs/SEPTEMBER_SCOPE.md)。
@@ -115,6 +117,7 @@ moon build --target all --deny-warn
 node scripts/gateway-e2e.mjs
 node scripts/gateway-config-e2e.mjs
 node scripts/gateway-limits-e2e.mjs
+node scripts/gateway-circuit-e2e.mjs
 node scripts/gateway-deadletter-e2e.mjs
 node scripts/gateway-restart-e2e.mjs
 ```

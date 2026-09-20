@@ -69,10 +69,14 @@ checked before a result is returned.
 |---|---|---|
 | GET | /health | Health and current counters |
 | GET | /api/stats | Event and delivery counts |
+| GET | /api/metrics | Process-local delivery latency histogram with opaque target IDs |
 | GET | /api/events | Redacted event metadata |
 | GET | /api/deliveries | Delivery state and last failure |
 | POST | /api/deliveries/:id/retry | Reset a dead letter for delivery |
 | POST | /api/events/:id/replay | Create fresh work for an accepted event |
+
+For local inspection, run `curl http://127.0.0.1:8787/api/metrics`; use
+`/api/deliveries` to see each delivery and its `circuitState`.
 
 The API deliberately omits raw and transformed bodies. Raw bodies and any
 route-specific transformed outputs are retained in the local state file because
@@ -96,8 +100,17 @@ data directory as production-sensitive material.
   or the configured concurrency and rolling one-second start rate. A process
   never runs more than 16 simultaneous outbound attempts. Retries and manual
   replays pass through the same gate; waiting work stays pending or scheduled.
-- Limits are process-local and reset on restart. They are not a distributed
-  quota across gateway instances.
+- Configured circuit breakers pause repeatedly failing targets without
+  consuming delivery attempts or rate tokens. A single half-open probe runs
+  after cooldown; unrelated targets continue. Permanent HTTP 4xx is neutral.
+  Delivery rows expose `circuitState` as disabled, closed, open, or half_open.
+- Completed attempts feed five disjoint latency buckets: up to 100, 500, 1000,
+  and 5000 ms, then above 5000 ms. `/api/metrics` uses anonymous process-local
+  target IDs, not destination URLs, payloads, or credentials.
+  Bucket keys are `le_100_ms`, `gt_100_le_500_ms`, `gt_500_le_1000_ms`,
+  `gt_1000_le_5000_ms`, and `gt_5000_ms`.
+- Limits, circuit states, and latency metrics are process-local and reset on
+  restart. They are not a distributed quota across gateway instances.
 - Transformation failure returns HTTP 422 before idempotency or persistence.
 
 These rules provide at-least-once delivery. Consumers must use
@@ -118,6 +131,7 @@ deployment concerns.
 node scripts/gateway-e2e.mjs
 node scripts/gateway-config-e2e.mjs
 node scripts/gateway-limits-e2e.mjs
+node scripts/gateway-circuit-e2e.mjs
 node scripts/gateway-deadletter-e2e.mjs
 node scripts/gateway-restart-e2e.mjs
 ~~~
@@ -126,4 +140,5 @@ The tests start temporary loopback services, validate configuration, assert the
 exact transformed body delivered to a receiver, reject the first two delivery
 attempts, confirm eventual success, check duplicate suppression and API
 redaction, verify a durable state file, exercise target concurrency/rate
-limits and cross-target isolation, and remove their temporary data.
+limits, circuit recovery, 4xx neutrality, anonymous latency metrics, and
+cross-target isolation, then remove their temporary data.

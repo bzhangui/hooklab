@@ -16,6 +16,10 @@ All notable changes are documented here. HookLab follows semantic versioning.
 - Process-local per-target outbound concurrency and rolling-window rate limits,
   including retries and manual replays, with a global 16-attempt ceiling.
 - End-to-end coverage for target isolation and limit enforcement.
+- Opt-in per-target circuit breakers with half-open probes and permanent-4xx
+  neutrality; process-local latency histograms with opaque target labels.
+- End-to-end coverage for circuit opening, replay admission, recovery, and
+  metric redaction.
 
 ### Maintenance
 

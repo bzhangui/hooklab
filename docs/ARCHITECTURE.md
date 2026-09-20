@@ -27,6 +27,9 @@ accepted event ──▶ atomic snapshot ──▶ redacted management view
     ▼
 delivery queue
     │
+    ▼
+per-target rate/concurrency + optional circuit gate
+    │
     ├──2xx──────────────────────────▶ delivered
     ├──408/425/429/5xx/transport────▶ scheduled retry
     └──permanent/exhausted──────────▶ dead letter ──▶ manual recovery
@@ -41,7 +44,7 @@ delivery queue
 - `providers` 负责头格式、签名输入与时间戳规则，不承载业务副作用。
 - `engine` 提供幂等、路由、脱敏和重试等纯规则或小状态组件。
 - `event` 定义已接收事件以及可替换的查询存储语义。
-- `delivery` 定义可持久化的投递生命周期、领取规则和死信恢复。
+- `delivery` 定义可持久化的投递生命周期、领取规则、死信恢复，以及按目标熔断与匿名耗时统计。
 - `contract` 校验事件传输契约，并一次返回全部问题。
 - `config` 解析版本化部署配置，拒绝明文密钥并聚合字段错误。
 - `transform` 执行 set/remove/copy JSON 规则并强制输入、输出与操作数预算。

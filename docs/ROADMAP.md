@@ -16,7 +16,7 @@ implied capability of the current release.
 - [x] Versioned declarative gateway configuration
 - [x] Rule-based transforms with explicit size and execution budgets
 - [x] Per-target concurrency and rate limits
-- [ ] Circuit breaking and delivery latency histograms
+- [x] Circuit breaking and delivery latency histograms
 - [ ] Export/import and retention controls
 
 ## 0.4 — Transactional adapters

@@ -50,6 +50,7 @@ rejected even if the rest of the configuration is valid.
 | `data_dir` | no | Persistent state directory; defaults to `.hooklab-data` |
 | `routes` | yes | Non-empty array of unique named routes |
 | `delivery_limits` | no | Per-target outbound concurrency and rate policies |
+| `circuit_breakers` | no | Opt-in per-target failure circuit policies |
 
 Each route has these fields:
 
@@ -81,6 +82,19 @@ a distributed quota; multi-instance deployments need external coordination.
 Admission never changes an accepted event into a rejection: pending deliveries
 wait until a slot or rate window opens. See [GATEWAY.md](GATEWAY.md) for delivery
 behavior and operational boundaries.
+
+## Opt-in circuit breakers
+
+Each optional `circuit_breakers` entry names an exact HTTP(S) `target` present
+in `routes`, a `failure_threshold` from 1 through 20 retryable failures
+since the last success, and an `open_ms` cooldown from 1000 through 300000
+milliseconds. Permanent responses do not change the failure count.
+Targets must be unique. Omit this field to preserve the previous behavior:
+no circuit breaker is active. A configured circuit opens after transport
+errors or HTTP 408, 425, 429, or 5xx; permanent HTTP 4xx does not trip it.
+After cooldown, only one half-open probe may run. A success closes the circuit;
+a retryable failure reopens it. Pending work waits without consuming an attempt
+or rate token. The state is process-local and resets after restart.
 
 ## Bounded route transforms
 
@@ -132,6 +146,13 @@ complete schema, failure behavior, replay semantics, and security boundary.
       "target": "http://127.0.0.1:9090/billing",
       "max_concurrency": 2,
       "requests_per_second": 5
+    }
+  ],
+  "circuit_breakers": [
+    {
+      "target": "http://127.0.0.1:9090/billing",
+      "failure_threshold": 3,
+      "open_ms": 10000
     }
   ]
 }

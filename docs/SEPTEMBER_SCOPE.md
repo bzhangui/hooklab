@@ -37,8 +37,10 @@ transformations with mandatory input, output, and operation-count budgets,
 atomic failure semantics, stable replay outputs, cross-target tests, and an
 end-to-end delivery assertion. Subsequent work added process-local per-target
 outbound concurrency and rate controls, a global safety ceiling, and an
-end-to-end isolation test. These commits extend the accepted project rather
-than replacing its subject or repository.
+end-to-end isolation test. Further maintenance added opt-in per-target circuit
+breaking, single half-open probes, process-local anonymized latency histograms,
+and an end-to-end recovery test. These commits extend the accepted project
+rather than replacing its subject or repository.
 
 ## Acceptance evidence
 
