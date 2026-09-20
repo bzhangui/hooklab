@@ -165,15 +165,17 @@ fn gateway_dashboard_html() -> String {
     #|<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>HookLab Gateway</title>
     #|<style>:root{color-scheme:light dark;font-family:Inter,system-ui,sans-serif}body{margin:0;background:#0b1020;color:#e9efff}main{max-width:1100px;margin:auto;padding:32px 20px}.hero{display:flex;justify-content:space-between;align-items:end;gap:20px}.badge{color:#8fb2ff}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:24px 0}.card,table{background:#141c31;border:1px solid #293653;border-radius:14px}.card{padding:18px}.value{font-size:28px;font-weight:750}table{width:100%;border-collapse:collapse;overflow:hidden}th,td{text-align:left;padding:12px;border-bottom:1px solid #293653;font-size:14px}th{color:#9eb0d2}.ok{color:#7ee2a8}.bad{color:#ff9b9b}button{border:0;border-radius:9px;background:#5c83ff;color:white;padding:9px 13px;cursor:pointer}code{color:#b9ccff}</style></head><body><main>
     #|<div class="hero"><div><div class="badge">MoonBit-native event delivery</div><h1>HookLab Gateway</h1><p>安全接收、持久化、可靠投递、死信与回放。</p></div><button id="refresh">刷新</button></div>
-    #|<section class="grid" id="stats"></section><h2>最近投递</h2><table><thead><tr><th>状态</th><th>事件</th><th>目标</th><th>尝试</th><th>操作</th></tr></thead><tbody id="deliveries"></tbody></table>
+    #|<section class="grid" id="stats"></section><h2>最近投递</h2><table><thead><tr><th>状态</th><th>熔断</th><th>事件</th><th>目标</th><th>尝试</th><th>操作</th></tr></thead><tbody id="deliveries"></tbody></table>
+    #|<h2>投递耗时</h2><section class="grid" id="metrics"></section>
     #|<h2>最近事件</h2><table><thead><tr><th>时间</th><th>提供方</th><th>类型</th><th>事件 ID</th></tr></thead><tbody id="events"></tbody></table>
     #|</main><script>
     #|const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));
     #|async function retry(id){await fetch("/api/deliveries/"+encodeURIComponent(id)+"/retry",{method:"POST"});await load()}
-    #|async function load(){const [s,e,d]=await Promise.all(["/api/stats","/api/events","/api/deliveries"].map(x=>fetch(x).then(r=>r.json())));
+    #|async function load(){const [s,e,d,m]=await Promise.all(["/api/stats","/api/events","/api/deliveries","/api/metrics"].map(x=>fetch(x).then(r=>r.json())));
     #|document.querySelector("#stats").innerHTML=Object.entries(s).map(([k,v])=>'<div class="card"><div>'+esc(k)+'</div><div class="value">'+esc(v)+'</div></div>').join("");
+    #|document.querySelector("#metrics").innerHTML=m.targets.map(x=>'<div class="card"><div>'+esc(x.id)+' · 已完成尝试</div><div class="value">'+esc(x.total)+'</div><small>'+Object.entries(x.buckets).map(([k,v])=>esc(k)+': '+esc(v)).join(' · ')+'</small></div>').join("");
     #|document.querySelector("#events").innerHTML=e.slice().reverse().slice(0,50).map(x=>'<tr><td>'+esc(new Date(x.receivedAt).toLocaleString())+'</td><td>'+esc(x.provider)+'</td><td>'+esc(x.eventType)+'</td><td><code>'+esc(x.id)+'</code></td></tr>').join("");
-    #|document.querySelector("#deliveries").innerHTML=d.slice().reverse().slice(0,50).map(x=>'<tr><td class="'+(x.state==="delivered"?"ok":x.state==="dead_lettered"?"bad":"")+'">'+esc(x.state)+'</td><td><code>'+esc(x.eventId)+'</code></td><td>'+esc(x.target)+'</td><td>'+esc(x.attempt)+'</td><td>'+(x.state==="dead_lettered"?'<button onclick="retry(\''+esc(x.id)+'\')">重试</button>':"")+'</td></tr>').join("")}
+    #|document.querySelector("#deliveries").innerHTML=d.slice().reverse().slice(0,50).map(x=>'<tr><td class="'+(x.state==="delivered"?"ok":x.state==="dead_lettered"?"bad":"")+'">'+esc(x.state)+'</td><td>'+esc(x.circuitState)+'</td><td><code>'+esc(x.eventId)+'</code></td><td>'+esc(x.target)+'</td><td>'+esc(x.attempt)+'</td><td>'+(x.state==="dead_lettered"?'<button onclick="retry(\''+esc(x.id)+'\')">重试</button>':"")+'</td></tr>').join("")}
     #|document.querySelector("#refresh").onclick=load;load();setInterval(load,3000);
     #|</script></body></html>
   )
@@ -249,6 +251,8 @@ fn serve_gateway(args : Array[String]) -> Unit {
     @core.provider_name(provider),
   )
   let limiter = @delivery.DispatchLimiter::new([])
+  let breaker = @delivery.CircuitBreaker::new([])
+  let latency = @delivery.LatencyMetrics::new()
   run_gateway_runtime(
     port,
     data_dir,
@@ -258,8 +262,34 @@ fn serve_gateway(args : Array[String]) -> Unit {
       )
     },
     gateway_decision_json,
-    fn(target, now_ms) { limiter.try_acquire(target, now_ms) },
-    fn(target) { limiter.release(target) },
+    fn(target, now_ms) {
+      if !breaker.try_acquire(target, now_ms) {
+        false
+      } else if limiter.try_acquire(target, now_ms) {
+        true
+      } else {
+        breaker.cancel(target)
+        false
+      }
+    },
+    fn(target) {
+      breaker.cancel(target)
+      limiter.release(target)
+    },
+    fn(target, result, now_ms, duration_ms) {
+      let outcome = if result == 1 {
+        @delivery.Success
+      } else if result == 2 {
+        @delivery.RetryableFailure
+      } else {
+        @delivery.Neutral
+      }
+      breaker.complete(target, outcome, now_ms)
+      limiter.release(target)
+      latency.record(target, duration_ms)
+    },
+    fn(target, now_ms) { breaker.state(target, now_ms) },
+    fn() { latency.to_json() },
     gateway_dashboard_html(),
   )
 }

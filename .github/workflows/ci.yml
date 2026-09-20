@@ -42,6 +42,9 @@ jobs:
       - name: Gateway limits E2E
         timeout-minutes: 2
         run: node scripts/gateway-limits-e2e.mjs
+      - name: Gateway circuit E2E
+        timeout-minutes: 2
+        run: node scripts/gateway-circuit-e2e.mjs
       - name: Gateway restart E2E
         timeout-minutes: 2
         run: node scripts/gateway-restart-e2e.mjs

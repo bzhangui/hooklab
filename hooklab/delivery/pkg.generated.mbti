@@ -12,6 +12,30 @@ pub fn delivery_state_name(DeliveryState) -> String
 // Errors
 
 // Types and methods
+pub struct CircuitBreaker {
+  policies : Array[CircuitPolicy]
+  meters : Array[CircuitMeter]
+}
+pub fn CircuitBreaker::cancel(Self, String) -> Unit
+pub fn CircuitBreaker::complete(Self, String, CircuitOutcome, Int64) -> Unit
+pub fn CircuitBreaker::new(Array[CircuitPolicy]) -> Self
+pub fn CircuitBreaker::state(Self, String, Int64) -> String
+pub fn CircuitBreaker::try_acquire(Self, String, Int64) -> Bool
+
+type CircuitMeter
+
+pub(all) enum CircuitOutcome {
+  Success
+  RetryableFailure
+  Neutral
+} derive(Eq, @debug.Debug)
+
+pub(all) struct CircuitPolicy {
+  target : String
+  failure_threshold : Int
+  open_ms : Int
+} derive(Eq, @debug.Debug)
+
 pub(all) struct Delivery {
   id : String
   event_id : String
@@ -62,6 +86,16 @@ pub(all) enum EnqueueResult {
   DuplicateDelivery
   InvalidDelivery
 } derive(Eq, @debug.Debug)
+
+pub struct LatencyMetrics {
+  targets : Array[LatencyTarget]
+  mut total : Int64
+}
+pub fn LatencyMetrics::new() -> Self
+pub fn LatencyMetrics::record(Self, String, Int64) -> Unit
+pub fn LatencyMetrics::to_json(Self) -> String
+
+type LatencyTarget
 
 pub(all) struct TargetLimit {
   target : String

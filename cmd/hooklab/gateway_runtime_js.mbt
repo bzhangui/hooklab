@@ -5,14 +5,18 @@ extern "js" fn run_gateway_runtime(
   handler : (String, String, String, Int64) -> String,
   decision : (Int, Int, String, String) -> String,
   acquire : (String, Int64) -> Bool,
-  release : (String) -> Unit,
+  cancel : (String) -> Unit,
+  complete : (String, Int, Int64, Int64) -> Unit,
+  circuit_state : (String, Int64) -> String,
+  metrics : () -> String,
   dashboard : String,
 ) -> Unit =
-  #| function(port, dataDir, handler, decision, acquire, release, dashboard) {
+  #| function(port, dataDir, handler, decision, acquire, cancel, complete, circuitState, metrics, dashboard) {
   #|   const http = require("node:http");
   #|   const fs = require("node:fs");
   #|   const path = require("node:path");
   #|   const crypto = require("node:crypto");
+  #|   const performance = require("node:perf_hooks").performance;
   #|   const root = path.resolve(dataDir);
   #|   const statePath = path.join(root, "state.json");
   #|   fs.mkdirSync(root, {recursive: true});
@@ -48,7 +52,7 @@ extern "js" fn run_gateway_runtime(
   #|     res.end(body);
   #|   };
   #|   const publicEvent = event => ({id: event.id, provider: event.provider, eventType: event.eventType, deliveryId: event.deliveryId, redactedBody: event.redactedBody, receivedAt: event.receivedAt, targets: event.targets});
-  #|   const publicDelivery = item => ({id: item.id, eventId: item.eventId, target: item.target, state: item.state, attempt: item.attempt, nextAttemptAt: item.nextAttemptAt, lastStatus: item.lastStatus, lastError: item.lastError, updatedAt: item.updatedAt});
+  #|   const publicDelivery = item => ({id: item.id, eventId: item.eventId, target: item.target, state: item.state, circuitState: circuitState(item.target, BigInt(Date.now())), attempt: item.attempt, nextAttemptAt: item.nextAttemptAt, lastStatus: item.lastStatus, lastError: item.lastError, updatedAt: item.updatedAt});
   #|   const stats = () => {
   #|     const result = {events: state.events.length, pending: 0, scheduled: 0, in_flight: 0, delivered: 0, dead_lettered: 0};
   #|     for (const item of state.deliveries) if (Object.hasOwn(result, item.state)) result[item.state]++;
@@ -86,6 +90,8 @@ extern "js" fn run_gateway_runtime(
   #|     }
   #|   }
   #|   async function deliver(item) {
+  #|     const startedAt = performance.now();
+  #|     let circuitOutcome = 0;
   #|     try {
   #|     const event = state.events.find(x => x.id === item.eventId);
   #|     let status = 0;
@@ -101,6 +107,7 @@ extern "js" fn run_gateway_runtime(
   #|     } catch (error) {
   #|       transportError = String(error);
   #|     }
+  #|     circuitOutcome = transportError || status === 408 || status === 425 || status === 429 || status >= 500 ? 2 : status >= 200 && status < 300 ? 1 : 0;
   #|     let result;
   #|     try { result = JSON.parse(decision(item.attempt, status, retryAfter, transportError)); }
   #|     catch (error) { result = {decision: "dead_letter", delay_ms: 0, reason: "invalid MoonBit delivery decision: " + String(error)}; }
@@ -119,7 +126,8 @@ extern "js" fn run_gateway_runtime(
   #|     }
   #|     save();
   #|     } finally {
-  #|       release(item.target);
+  #|       const durationMs = Math.max(0, Math.round(performance.now() - startedAt));
+  #|       complete(item.target, circuitOutcome, BigInt(Date.now()), BigInt(durationMs));
   #|     }
   #|   }
   #|   let scanning = false;
@@ -131,13 +139,19 @@ extern "js" fn run_gateway_runtime(
   #|       for (const item of state.deliveries) {
   #|         if ((item.state !== "pending" && item.state !== "scheduled") || item.nextAttemptAt > now) continue;
   #|         if (!acquire(item.target, BigInt(now))) continue;
+  #|         const previousState = item.state;
+  #|         const previousAttempt = item.attempt;
+  #|         const previousUpdatedAt = item.updatedAt;
   #|         try {
   #|           item.state = "in_flight";
   #|           item.attempt++;
   #|           item.updatedAt = now;
   #|           save();
   #|         } catch (error) {
-  #|           release(item.target);
+  #|           item.state = previousState;
+  #|           item.attempt = previousAttempt;
+  #|           item.updatedAt = previousUpdatedAt;
+  #|           cancel(item.target);
   #|           throw error;
   #|         }
   #|         void deliver(item).catch(error => console.error(error));
@@ -157,6 +171,10 @@ extern "js" fn run_gateway_runtime(
   #|     }
   #|     if (req.method === "GET" && url.pathname === "/health") return json(res, 200, {status: "ok", ...stats()});
   #|     if (req.method === "GET" && url.pathname === "/api/stats") return json(res, 200, stats());
+  #|     if (req.method === "GET" && url.pathname === "/api/metrics") {
+  #|       try { return json(res, 200, JSON.parse(metrics())); }
+  #|       catch (_) { return json(res, 500, {error: "metrics_unavailable"}); }
+  #|     }
   #|     if (req.method === "GET" && url.pathname === "/api/events") return json(res, 200, state.events.map(publicEvent));
   #|     if (req.method === "GET" && url.pathname === "/api/deliveries") return json(res, 200, state.deliveries.map(publicDelivery));
   #|     const retryMatch = url.pathname.match(/^\/api\/deliveries\/([^/]+)\/retry$/);

@@ -95,6 +95,8 @@ fn serve_configured_gateway(args : Array[String]) -> Unit {
         @core.provider_name(value.provider),
       )
       let limiter = @delivery.DispatchLimiter::new(value.delivery_limits)
+      let breaker = @delivery.CircuitBreaker::new(value.circuit_breakers)
+      let latency = @delivery.LatencyMetrics::new()
       run_gateway_runtime(
         value.port,
         value.data_dir,
@@ -110,8 +112,34 @@ fn serve_configured_gateway(args : Array[String]) -> Unit {
           )
         },
         gateway_decision_json,
-        fn(target, now_ms) { limiter.try_acquire(target, now_ms) },
-        fn(target) { limiter.release(target) },
+        fn(target, now_ms) {
+          if !breaker.try_acquire(target, now_ms) {
+            false
+          } else if limiter.try_acquire(target, now_ms) {
+            true
+          } else {
+            breaker.cancel(target)
+            false
+          }
+        },
+        fn(target) {
+          breaker.cancel(target)
+          limiter.release(target)
+        },
+        fn(target, result, now_ms, duration_ms) {
+          let outcome = if result == 1 {
+            @delivery.Success
+          } else if result == 2 {
+            @delivery.RetryableFailure
+          } else {
+            @delivery.Neutral
+          }
+          breaker.complete(target, outcome, now_ms)
+          limiter.release(target)
+          latency.record(target, duration_ms)
+        },
+        fn(target, now_ms) { breaker.state(target, now_ms) },
+        fn() { latency.to_json() },
         gateway_dashboard_html(),
       )
     }
