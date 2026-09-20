@@ -49,6 +49,7 @@ rejected even if the rest of the configuration is valid.
 | `port` | no | Loopback port from 1 through 65535; defaults to 8787 |
 | `data_dir` | no | Persistent state directory; defaults to `.hooklab-data` |
 | `routes` | yes | Non-empty array of unique named routes |
+| `delivery_limits` | no | Per-target outbound concurrency and rate policies |
 
 Each route has these fields:
 
@@ -64,6 +65,22 @@ Each route has these fields:
 Array indexes are accepted in dot paths, for example `items.0.sku`. If several
 routes match, HookLab creates independent delivery work for each distinct
 target. A target is never derived from the incoming payload.
+
+## Outbound delivery limits
+
+Each optional `delivery_limits` entry selects an exact HTTP(S) `target` used by
+at least one route, a required `max_concurrency` from 1 through 16, and an
+optional `requests_per_second` from 1 through 100. A target can appear only
+once. The request rate counts started attempts in a rolling one-second window;
+retries and manual replays use the same limit. An omitted rate has no rate cap.
+Targets without a policy default to one in-flight attempt and no rate cap.
+The process also has a hard ceiling of 16 simultaneous outbound attempts.
+
+The counters live in one gateway process and reset after restart. They are not
+a distributed quota; multi-instance deployments need external coordination.
+Admission never changes an accepted event into a rejection: pending deliveries
+wait until a slot or rate window opens. See [GATEWAY.md](GATEWAY.md) for delivery
+behavior and operational boundaries.
 
 ## Bounded route transforms
 
@@ -108,6 +125,13 @@ complete schema, failure behavior, replay semantics, and security boundary.
           {"operation": "set", "path": "hooklab_route", "value": "audit-all"}
         ]
       }
+    }
+  ],
+  "delivery_limits": [
+    {
+      "target": "http://127.0.0.1:9090/billing",
+      "max_concurrency": 2,
+      "requests_per_second": 5
     }
   ]
 }

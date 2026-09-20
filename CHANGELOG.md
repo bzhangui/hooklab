@@ -13,6 +13,9 @@ All notable changes are documented here. HookLab follows semantic versioning.
 - Per-route deterministic JSON set, remove, and copy transformations.
 - Explicit UTF-8 input, output, and operation-count budgets with atomic rejection.
 - Persisted route-specific outputs that remain stable during manual replay.
+- Process-local per-target outbound concurrency and rolling-window rate limits,
+  including retries and manual replays, with a global 16-attempt ceiling.
+- End-to-end coverage for target isolation and limit enforcement.
 
 ## 0.2.0 — September 2026 maintenance cycle
 

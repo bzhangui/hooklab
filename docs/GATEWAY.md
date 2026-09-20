@@ -92,6 +92,12 @@ data directory as production-sensitive material.
 - In-flight work is changed to scheduled work when a process restarts.
 - State updates use a temporary file followed by an atomic rename.
 - A route-specific transformed body is reused for retries and manual replay.
+- Outbound attempts are admitted per target: one concurrent attempt by default,
+  or the configured concurrency and rolling one-second start rate. A process
+  never runs more than 16 simultaneous outbound attempts. Retries and manual
+  replays pass through the same gate; waiting work stays pending or scheduled.
+- Limits are process-local and reset on restart. They are not a distributed
+  quota across gateway instances.
 - Transformation failure returns HTTP 422 before idempotency or persistence.
 
 These rules provide at-least-once delivery. Consumers must use
@@ -111,6 +117,7 @@ deployment concerns.
 ~~~bash
 node scripts/gateway-e2e.mjs
 node scripts/gateway-config-e2e.mjs
+node scripts/gateway-limits-e2e.mjs
 node scripts/gateway-deadletter-e2e.mjs
 node scripts/gateway-restart-e2e.mjs
 ~~~
@@ -118,4 +125,5 @@ node scripts/gateway-restart-e2e.mjs
 The tests start temporary loopback services, validate configuration, assert the
 exact transformed body delivered to a receiver, reject the first two delivery
 attempts, confirm eventual success, check duplicate suppression and API
-redaction, verify a durable state file, and remove their temporary data.
+redaction, verify a durable state file, exercise target concurrency/rate
+limits and cross-target isolation, and remove their temporary data.

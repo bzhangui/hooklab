@@ -35,7 +35,9 @@ secret references, named content routes, CLI validation, and an end-to-end
 configured startup test. Development then added per-route deterministic JSON
 transformations with mandatory input, output, and operation-count budgets,
 atomic failure semantics, stable replay outputs, cross-target tests, and an
-end-to-end delivery assertion. These commits extend the accepted project rather
+end-to-end delivery assertion. Subsequent work added process-local per-target
+outbound concurrency and rate controls, a global safety ceiling, and an
+end-to-end isolation test. These commits extend the accepted project rather
 than replacing its subject or repository.
 
 ## Acceptance evidence
