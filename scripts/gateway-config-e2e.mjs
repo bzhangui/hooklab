@@ -32,6 +32,23 @@ async function waitFor(url, predicate, timeoutMs = 15000) {
   throw new Error("Timed out waiting for " + url);
 }
 
+async function requestStatus({port, path: requestPath, method = "GET", headers}) {
+  return await new Promise((resolve, reject) => {
+    const request = http.request({
+      hostname: "127.0.0.1",
+      port,
+      path: requestPath,
+      method,
+      headers,
+    }, response => {
+      response.resume();
+      response.on("end", () => resolve(response.statusCode));
+    });
+    request.on("error", reject);
+    request.end();
+  });
+}
+
 const root = path.resolve(import.meta.dirname, "..");
 const gatewayPort = await unusedPort();
 const receiverPort = await unusedPort();
@@ -113,6 +130,19 @@ try {
     "http://127.0.0.1:" + gatewayPort + "/health",
     value => value.status === "ok",
   );
+  const base = "http://127.0.0.1:" + gatewayPort;
+  const foreignHostStatus = await requestStatus({
+    port: gatewayPort,
+    path: "/health",
+    headers: {host: "attacker.example"},
+  });
+  assert.equal(foreignHostStatus, 421);
+  const malformedHook = await fetch(base + "/hooks/%", {method: "POST"});
+  assert.equal(malformedHook.status, 400);
+  const healthAfterMalformedHook = await fetch(base + "/health");
+  assert.equal(healthAfterMalformedHook.status, 200);
+  assert.equal((await healthAfterMalformedHook.json()).status, "ok");
+
   const send = (id, body) => {
     const timestamp = Math.floor(Date.now() / 1000).toString();
     const signature = crypto.createHmac("sha256", "config-secret")
@@ -179,9 +209,29 @@ try {
   const events = await fetch(
     "http://127.0.0.1:" + gatewayPort + "/api/events",
   ).then(response => response.json());
+  const replayUrl = "http://127.0.0.1:" + gatewayPort + "/api/events/" +
+    encodeURIComponent(events[0].id) + "/replay";
+  const malformedReplay = await fetch(
+    "http://127.0.0.1:" + gatewayPort + "/api/events/%/replay",
+    {method: "POST"},
+  );
+  assert.equal(malformedReplay.status, 400);
+  const crossOriginReplay = await fetch(replayUrl, {
+    method: "POST",
+    headers: {origin: "https://attacker.example"},
+  });
+  assert.equal(crossOriginReplay.status, 403);
+  const unchangedDeliveries = await fetch(
+    "http://127.0.0.1:" + gatewayPort + "/api/deliveries",
+  ).then(response => response.json());
+  assert.equal(unchangedDeliveries.length, 1);
+  assert.equal(received, 1);
+  const healthAfterRejectedReplay = await fetch(base + "/health");
+  assert.equal(healthAfterRejectedReplay.status, 200);
+  assert.equal((await healthAfterRejectedReplay.json()).status, "ok");
+
   const replay = await fetch(
-    "http://127.0.0.1:" + gatewayPort + "/api/events/" +
-      encodeURIComponent(events[0].id) + "/replay",
+    replayUrl,
     {method: "POST"},
   );
   assert.equal(replay.status, 202);
@@ -192,7 +242,7 @@ try {
   );
   assert.equal(received, 2);
   assert.deepEqual(receivedPayloads[1], expectedPayload);
-  assert.equal(fs.existsSync(path.join(stateDir, "state.json")), true);
+  assert.equal(fs.existsSync(path.join(stateDir, "hooklab.sqlite")), true);
   console.log("Gateway declarative configuration E2E passed.");
 } finally {
   await stopChild(child);

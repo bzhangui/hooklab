@@ -2,6 +2,9 @@
 /target/
 /.mooncakes/
 /.hooklab-data/
+*.sqlite
+*.sqlite-wal
+*.sqlite-shm
 diagnosis.html
 *.log
 .env

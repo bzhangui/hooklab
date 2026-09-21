@@ -13,6 +13,10 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v5
+      - name: Use Node.js 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
       - name: Install MoonBit
         run: |
           curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash
@@ -48,3 +52,9 @@ jobs:
       - name: Gateway restart E2E
         timeout-minutes: 2
         run: node scripts/gateway-restart-e2e.mjs
+      - name: Gateway outbound publication E2E
+        timeout-minutes: 2
+        run: node scripts/gateway-outbound-e2e.mjs
+      - name: Gateway worker lease E2E
+        timeout-minutes: 2
+        run: node scripts/gateway-lease-e2e.mjs

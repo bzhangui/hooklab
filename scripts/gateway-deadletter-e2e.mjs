@@ -86,12 +86,29 @@ try {
   assert.equal(delivery?.state, "dead_lettered");
   assert.equal(delivery?.attempt, 1);
 
-  acceptDelivery = true;
-  const retry = await fetch(
-    "http://127.0.0.1:" + gatewayPort + "/api/deliveries/" +
-      encodeURIComponent(delivery.id) + "/retry",
+  const base = "http://127.0.0.1:" + gatewayPort;
+  const retryUrl = base + "/api/deliveries/" +
+    encodeURIComponent(delivery.id) + "/retry";
+  const malformedRetry = await fetch(
+    base + "/api/deliveries/%/retry",
     {method: "POST"},
   );
+  assert.equal(malformedRetry.status, 400);
+  const crossOriginRetry = await fetch(retryUrl, {
+    method: "POST",
+    headers: {origin: "https://attacker.example"},
+  });
+  assert.equal(crossOriginRetry.status, 403);
+  const unchanged = await fetch(base + "/api/deliveries")
+    .then(value => value.json());
+  assert.equal(unchanged[0]?.state, "dead_lettered");
+  assert.equal(unchanged[0]?.attempt, 1);
+  const healthAfterRejectedRetry = await fetch(base + "/health");
+  assert.equal(healthAfterRejectedRetry.status, 200);
+  assert.equal((await healthAfterRejectedRetry.json()).status, "ok");
+
+  acceptDelivery = true;
+  const retry = await fetch(retryUrl, {method: "POST"});
   assert.equal(retry.status, 202);
   const recoveryDeadline = Date.now() + 5000;
   while (Date.now() < recoveryDeadline) {

@@ -133,7 +133,7 @@ try {
   ).then(response => response.json());
   assert.equal(stats.events, 1);
   assert.equal(stats.delivered, 1);
-  assert.equal(fs.existsSync(path.join(dataDir, "state.json")), true);
+  assert.equal(fs.existsSync(path.join(dataDir, "hooklab.sqlite")), true);
   console.log("Gateway E2E passed: verified, deduplicated, persisted, retried, delivered, and redacted.");
 } finally {
   await stopChild(child);
