@@ -10,6 +10,9 @@ pub(all) struct GatewayConfig {
   route_transforms : Array[@transform.RouteTransform]
   delivery_limits : Array[@delivery.TargetLimit]
   circuit_breakers : Array[@delivery.CircuitPolicy]
+  outbound_applications : Array[@outbound.Application]
+  outbound_endpoints : Array[@outbound.Endpoint]
+  outbound_subscriptions : Array[@outbound.Subscription]
 } derive(Eq, Debug)
 
 ///|
@@ -346,6 +349,9 @@ pub fn parse_gateway_config(text : String) -> ConfigResult {
   }
   let delivery_limits = parse_delivery_limits(root, routes, issues)
   let circuit_breakers = parse_circuit_breakers(root, routes, issues)
+  let (outbound_applications, outbound_endpoints, outbound_subscriptions) = parse_outbound_config(
+    root, issues,
+  )
   if issues.is_empty() {
     match provider {
       Some(parsed) =>
@@ -360,6 +366,9 @@ pub fn parse_gateway_config(text : String) -> ConfigResult {
           route_transforms,
           delivery_limits,
           circuit_breakers,
+          outbound_applications,
+          outbound_endpoints,
+          outbound_subscriptions,
         })
       None => ConfigInvalid(issues)
     }
@@ -411,6 +420,12 @@ pub fn config_result_json(result : ConfigResult) -> String {
       value.delivery_limits.length().to_string() +
       ",\"circuit_breakers\":" +
       value.circuit_breakers.length().to_string() +
+      ",\"outbound_applications\":" +
+      value.outbound_applications.length().to_string() +
+      ",\"outbound_endpoints\":" +
+      value.outbound_endpoints.length().to_string() +
+      ",\"outbound_subscriptions\":" +
+      value.outbound_subscriptions.length().to_string() +
       "}"
     ConfigInvalid(issues) => {
       let values : Array[String] = []

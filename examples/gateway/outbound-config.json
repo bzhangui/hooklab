@@ -1,0 +1,40 @@
+{
+  "version": 1,
+  "provider": "generic-hmac",
+  "secret_env": "HOOKLAB_SECRET",
+  "previous_secrets_env": null,
+  "port": 8787,
+  "data_dir": ".hooklab-data",
+  "routes": [
+    {
+      "name": "ingress-all",
+      "path": "$",
+      "operator": "exists",
+      "target": "http://127.0.0.1:9090/inbound"
+    }
+  ],
+  "outbound": {
+    "applications": [
+      {
+        "id": "orders",
+        "publish_token_env": "HOOKLAB_PUBLISH_ORDERS"
+      }
+    ],
+    "endpoints": [
+      {
+        "id": "warehouse",
+        "url": "http://127.0.0.1:9090/events",
+        "signing_secret_env": "HOOKLAB_SIGN_WAREHOUSE",
+        "key_id": "warehouse-v1"
+      }
+    ],
+    "subscriptions": [
+      {
+        "id": "orders-created",
+        "application": "orders",
+        "endpoint": "warehouse",
+        "event_types": ["order.created"]
+      }
+    ]
+  }
+}

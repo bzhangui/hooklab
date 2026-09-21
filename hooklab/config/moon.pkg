@@ -2,6 +2,7 @@ import {
   "hooklab/hooklab/hooklab/core",
   "hooklab/hooklab/hooklab/delivery",
   "hooklab/hooklab/hooklab/engine",
+  "hooklab/hooklab/hooklab/outbound",
   "hooklab/hooklab/hooklab/transform",
   "moonbitlang/core/json",
 }

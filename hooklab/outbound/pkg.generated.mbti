@@ -1,0 +1,93 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "hooklab/hooklab/hooklab/outbound"
+
+import {
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn authorize_bearer(String, String) -> Bool
+
+pub fn delivery_token_valid(String) -> Bool
+
+pub fn plan_publication(Application, Array[Endpoint], Array[Subscription], String, String, String) -> PlanResult
+
+pub fn publication_delivery_id(String, String, String) -> String
+
+pub fn publication_event_id(String, String) -> String
+
+pub fn publication_fingerprint(String, String, String) -> String
+
+pub fn publish_token_matches(String, String) -> Bool
+
+pub fn sign_delivery(String, Int64, String, String, String, String) -> String
+
+pub fn signing_message(Int64, String, String, String, String) -> String
+
+pub fn subscription_matches(Subscription, String, String) -> Bool
+
+pub fn verify_delivery_signature(Array[String], String, Int64, String, String, String, String) -> Bool
+
+// Errors
+
+// Types and methods
+pub(all) struct Application {
+  id : String
+  publish_token_env : String
+  enabled : Bool
+} derive(Eq, @debug.Debug)
+
+pub(all) struct Endpoint {
+  id : String
+  url : String
+  signing_secret_env : String
+  key_id : String
+  enabled : Bool
+} derive(Eq, @debug.Debug)
+
+pub(all) enum PlanResult {
+  Planned(PublicationPlan)
+  PlanRejected(PublicationError)
+} derive(Eq, @debug.Debug)
+
+pub(all) struct PlannedDelivery {
+  id : String
+  subscription_id : String
+  endpoint_id : String
+  target : String
+  key_id : String
+  event_type : String
+  payload : String
+} derive(Eq, @debug.Debug)
+
+pub(all) enum PublicationError {
+  InvalidApplication
+  ApplicationDisabled
+  InvalidEventType
+  InvalidIdempotencyKey
+  InvalidPayload
+  InvalidSubscription(String)
+  UnknownEndpoint(String)
+} derive(Eq, @debug.Debug)
+
+pub(all) struct PublicationPlan {
+  event_id : String
+  application_id : String
+  event_type : String
+  idempotency_key : String
+  fingerprint : String
+  payload : String
+  deliveries : Array[PlannedDelivery]
+} derive(Eq, @debug.Debug)
+
+pub(all) struct Subscription {
+  id : String
+  application_id : String
+  endpoint_id : String
+  event_types : Array[String]
+  enabled : Bool
+} derive(Eq, @debug.Debug)
+
+// Type aliases
+
+// Traits
