@@ -51,16 +51,32 @@ pub(all) struct Delivery {
   updated_at_ms : Int64
 } derive(Eq, @debug.Debug)
 
+pub(all) struct DeliveryClaim {
+  delivery : Delivery
+  owner : String
+  token : Int64
+  expires_at_ms : Int64
+} derive(Eq, @debug.Debug)
+
+type DeliveryLease
+
 pub struct DeliveryQueue {
   deliveries : Array[Delivery]
+  leases : Array[DeliveryLease]
+  mut next_lease_token : Int64
 }
 pub fn DeliveryQueue::all(Self) -> Array[Delivery]
 pub fn DeliveryQueue::cancel(Self, String, Int64) -> UpdateResult
 pub fn DeliveryQueue::claim_due(Self, Int64, limit? : Int) -> Array[Delivery]
+pub fn DeliveryQueue::claim_due_with_lease(Self, String, Int64, Int64, limit? : Int) -> Array[DeliveryClaim]
 pub fn DeliveryQueue::enqueue(Self, String, String, String, Int64, payload? : String?, ordering_key? : String?) -> EnqueueResult
 pub fn DeliveryQueue::get(Self, String) -> Delivery?
+pub fn DeliveryQueue::get_claim(Self, String) -> DeliveryClaim?
 pub fn DeliveryQueue::new() -> Self
+pub fn DeliveryQueue::record_claim_outcome(Self, String, String, Int64, @engine.AttemptOutcome, Int64, retry_after? : String?, policy? : @engine.RetryPolicy) -> LeaseUpdateResult
 pub fn DeliveryQueue::record_outcome(Self, String, @engine.AttemptOutcome, Int64, retry_after? : String?, policy? : @engine.RetryPolicy) -> UpdateResult
+pub fn DeliveryQueue::recover_expired_leases(Self, Int64) -> Int
+pub fn DeliveryQueue::renew_lease(Self, String, String, Int64, Int64, Int64) -> LeaseUpdateResult
 pub fn DeliveryQueue::replay_dead_letter(Self, String, Int64) -> UpdateResult
 pub fn DeliveryQueue::size(Self) -> Int
 
@@ -97,6 +113,15 @@ pub fn LatencyMetrics::to_json(Self) -> String
 
 type LatencyTarget
 
+pub(all) enum LeaseUpdateResult {
+  LeaseUpdated
+  LeaseNotFound
+  LeaseInvalidTransition
+  LeaseStale
+  LeaseExpired
+  LeaseInvalid
+} derive(Eq, @debug.Debug)
+
 pub(all) struct TargetLimit {
   target : String
   max_concurrency : Int
@@ -114,4 +139,3 @@ pub(all) enum UpdateResult {
 // Type aliases
 
 // Traits
-
