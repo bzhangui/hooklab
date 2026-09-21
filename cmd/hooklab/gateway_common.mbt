@@ -1,4 +1,13 @@
 ///|
+fn gateway_hex_digit(value : Int) -> Char {
+  if value < 10 {
+    ('0'.to_int() + value).unsafe_to_char()
+  } else {
+    ('a'.to_int() + value - 10).unsafe_to_char()
+  }
+}
+
+///|
 fn gateway_json_escape(value : String) -> String {
   let out = StringBuilder()
   for c in value {
@@ -8,7 +17,16 @@ fn gateway_json_escape(value : String) -> String {
       '\n' => out.write_string("\\n")
       '\r' => out.write_string("\\r")
       '\t' => out.write_string("\\t")
-      _ => out.write_char(c)
+      _ => {
+        let code = c.to_int()
+        if code < 0x20 {
+          out.write_string("\\u00")
+          out.write_char(gateway_hex_digit(code / 16))
+          out.write_char(gateway_hex_digit(code % 16))
+        } else {
+          out.write_char(c)
+        }
+      }
     }
   }
   out.to_string()
@@ -76,12 +94,12 @@ fn gateway_accept_json(
     received_at,
   }
   match
-    gateway.accept(request, secrets, received_at * 1000L, verification_policy={
+    gateway.prepare(request, secrets, received_at * 1000L, verification_policy={
       tolerance_seconds: 300L,
       reject_future_seconds: 30L,
       require_delivery_id: true,
     }) {
-    @gateway.Rejected(failure) =>
+    @gateway.PreparationRejected(failure) =>
       "{\"accepted\":false,\"code\":" +
       gateway_json_string(@core.failure_code_name(failure.code)) +
       ",\"stage\":" +
@@ -89,7 +107,7 @@ fn gateway_accept_json(
       ",\"message\":" +
       gateway_json_string(failure.message) +
       "}"
-    @gateway.Accepted(event, deliveries) => {
+    @gateway.Prepared(event, deliveries) => {
       let work : Array[String] = []
       for delivery in deliveries {
         work.push(
@@ -261,6 +279,10 @@ fn serve_gateway(args : Array[String]) -> Unit {
         gateway, provider, secrets, provider_name, headers_json, body, received_at,
       )
     },
+    fn(_, _, _, _, _) {
+      "{\"accepted\":false,\"status\":404,\"code\":\"outbound_disabled\"}"
+    },
+    fn(_, _, _, _, _, _, _, _) { "" },
     gateway_decision_json,
     fn(target, now_ms) {
       if !breaker.try_acquire(target, now_ms) {
@@ -290,6 +312,7 @@ fn serve_gateway(args : Array[String]) -> Unit {
     },
     fn(target, now_ms) { breaker.state(target, now_ms) },
     fn() { latency.to_json() },
+    "{\"applications\":[],\"endpoints\":[],\"subscriptions\":[]}",
     gateway_dashboard_html(),
   )
 }

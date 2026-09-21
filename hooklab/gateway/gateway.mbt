@@ -5,6 +5,15 @@ pub(all) enum IngressResult {
 } derive(Eq, Debug)
 
 ///|
+/// A side-effect-free ingress plan. Runtime adapters can verify, route, and
+/// transform first, then atomically commit the event, idempotency key, and all
+/// deliveries in their own storage transaction.
+pub(all) enum PreparationResult {
+  Prepared(@event.EventRecord, Array[@delivery.Delivery])
+  PreparationRejected(@core.VerificationFailure)
+} derive(Eq, Debug)
+
+///|
 pub(all) struct GatewayStats {
   events : Int
   pending : Int
@@ -118,21 +127,21 @@ fn transformation_failure(
 }
 
 ///|
-/// Accepts a request into the event-delivery domain. Verification and every
-/// matched route transformation complete before idempotency is recorded. A
-/// rejected transformation therefore creates no persistent side effects.
-pub fn Gateway::accept(
+/// Verifies and plans an ingress request without mutating gateway state.
+/// Durable adapters should call this method and commit the returned plan in a
+/// single storage transaction.
+pub fn Gateway::prepare(
   self : Gateway,
   request : @core.WebhookRequest,
   secrets : Array[String],
   now_ms : Int64,
   verification_policy? : @core.VerificationPolicy = @core.VerificationPolicy::secure_default(),
   redaction_policy? : @engine.RedactionPolicy = @engine.RedactionPolicy::secure_default(),
-) -> IngressResult {
+) -> PreparationResult {
   let verified = match
     @providers.verify_with_secrets(request, secrets, policy=verification_policy) {
     @core.Verified(event) => event
-    @core.Rejected(failure) => return Rejected(failure)
+    @core.Rejected(failure) => return PreparationRejected(failure)
   }
   let routed : Array[(@engine.RouteMatch, String?)] = []
   for matched in @engine.route(verified.body, self.routes) {
@@ -142,24 +151,12 @@ pub fn Gateway::accept(
         match @transform.apply(verified.body, plan.operations, plan.budget) {
           @transform.Transformed(body, _) => Some(body)
           @transform.TransformRejected(failure) =>
-            return Rejected(transformation_failure(matched.rule_name, failure))
+            return PreparationRejected(
+              transformation_failure(matched.rule_name, failure),
+            )
         }
     }
     routed.push((matched, payload))
-  }
-  match verified.delivery_id {
-    Some(id) =>
-      match
-        self.idempotency.check_and_record_scoped(
-          @core.provider_name(verified.provider),
-          id,
-          request.received_at,
-        ) {
-        @engine.Accepted => ()
-        @engine.Duplicate | @engine.InvalidKey =>
-          return Rejected(duplicate_failure())
-      }
-    None => ()
   }
   let event_id = event_identifier(verified, request.received_at)
   let record : @event.EventRecord = {
@@ -171,23 +168,76 @@ pub fn Gateway::accept(
     redacted_body: @engine.redact_json(verified.body, policy=redaction_policy),
     received_at: request.received_at,
   }
-  guard self.event_store.append(record) == @event.Appended else {
-    return Rejected(duplicate_failure())
-  }
   let created : Array[@delivery.Delivery] = []
+  let planned = @delivery.DeliveryQueue::new()
   for item in routed {
     let matched = item.0
     let payload = item.1
     let id = delivery_identifier(event_id, matched.target)
+    if planned.enqueue(id, event_id, matched.target, now_ms, payload~) ==
+      @delivery.Enqueued {
+      match planned.get(id) {
+        Some(item) => created.push(item)
+        None => ()
+      }
+    }
+  }
+  Prepared(record, created)
+}
+
+///|
+/// Accepts a request into the in-memory event-delivery domain. Verification
+/// and every matched route transformation complete before idempotency is
+/// recorded. Durable runtime adapters should prefer `prepare` and atomically
+/// commit its result in their storage layer.
+pub fn Gateway::accept(
+  self : Gateway,
+  request : @core.WebhookRequest,
+  secrets : Array[String],
+  now_ms : Int64,
+  verification_policy? : @core.VerificationPolicy = @core.VerificationPolicy::secure_default(),
+  redaction_policy? : @engine.RedactionPolicy = @engine.RedactionPolicy::secure_default(),
+) -> IngressResult {
+  let (record, deliveries) = match
+    self.prepare(
+      request,
+      secrets,
+      now_ms,
+      verification_policy~,
+      redaction_policy~,
+    ) {
+    Prepared(record, deliveries) => (record, deliveries)
+    PreparationRejected(failure) => return Rejected(failure)
+  }
+  match record.delivery_id {
+    Some(id) =>
+      match
+        self.idempotency.check_and_record_scoped(
+          @core.provider_name(record.provider),
+          id,
+          record.received_at,
+        ) {
+        @engine.Accepted => ()
+        @engine.Duplicate | @engine.InvalidKey =>
+          return Rejected(duplicate_failure())
+      }
+    None => ()
+  }
+  guard self.event_store.append(record) == @event.Appended else {
+    return Rejected(duplicate_failure())
+  }
+  let created : Array[@delivery.Delivery] = []
+  for delivery in deliveries {
     if self.delivery_queue.enqueue(
-        id,
-        event_id,
-        matched.target,
-        now_ms,
-        payload~,
+        delivery.id,
+        delivery.event_id,
+        delivery.target,
+        delivery.created_at_ms,
+        payload=delivery.payload,
+        ordering_key=delivery.ordering_key,
       ) ==
       @delivery.Enqueued {
-      match self.delivery_queue.get(id) {
+      match self.delivery_queue.get(delivery.id) {
         Some(item) => created.push(item)
         None => ()
       }

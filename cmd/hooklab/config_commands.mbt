@@ -97,6 +97,14 @@ fn serve_configured_gateway(args : Array[String]) -> Unit {
       let limiter = @delivery.DispatchLimiter::new(value.delivery_limits)
       let breaker = @delivery.CircuitBreaker::new(value.circuit_breakers)
       let latency = @delivery.LatencyMetrics::new()
+      match validate_outbound_environment(value) {
+        Some(message) => {
+          println(message)
+          set_exit_code(1)
+          return
+        }
+        None => ()
+      }
       run_gateway_runtime(
         value.port,
         value.data_dir,
@@ -109,6 +117,32 @@ fn serve_configured_gateway(args : Array[String]) -> Unit {
             headers_json,
             body,
             received_at,
+          )
+        },
+        fn(
+          application_id,
+          authorization,
+          idempotency_key,
+          event_type,
+          payload,
+        ) {
+          outbound_publish_json(
+            value, application_id, authorization, idempotency_key, event_type, payload,
+          )
+        },
+        fn(
+          endpoint_id,
+          target,
+          key_id,
+          timestamp,
+          delivery_id,
+          event_id,
+          event_type,
+          payload,
+        ) {
+          outbound_signature(
+            value, endpoint_id, target, key_id, timestamp, delivery_id, event_id,
+            event_type, payload,
           )
         },
         gateway_decision_json,
@@ -140,6 +174,7 @@ fn serve_configured_gateway(args : Array[String]) -> Unit {
         },
         fn(target, now_ms) { breaker.state(target, now_ms) },
         fn() { latency.to_json() },
+        outbound_catalog_json(value),
         gateway_dashboard_html(),
       )
     }

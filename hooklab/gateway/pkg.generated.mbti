@@ -28,6 +28,7 @@ pub fn Gateway::deliveries(Self) -> Array[@delivery.Delivery]
 pub fn Gateway::events(Self) -> Array[@event.EventRecord]
 pub fn Gateway::new(Array[@engine.RouteRule], idempotency_ttl_seconds? : Int64) -> Self
 pub fn Gateway::new_with_transforms(Array[@engine.RouteRule], Array[@transform.RouteTransform], idempotency_ttl_seconds? : Int64) -> Self
+pub fn Gateway::prepare(Self, @core.WebhookRequest, Array[String], Int64, verification_policy? : @core.VerificationPolicy, redaction_policy? : @engine.RedactionPolicy) -> PreparationResult
 pub fn Gateway::record_outcome(Self, String, @engine.AttemptOutcome, Int64, retry_after? : String?, policy? : @engine.RetryPolicy) -> @delivery.UpdateResult
 pub fn Gateway::replay_dead_letter(Self, String, Int64) -> @delivery.UpdateResult
 pub fn Gateway::stats(Self) -> GatewayStats
@@ -47,7 +48,11 @@ pub(all) enum IngressResult {
   Rejected(@core.VerificationFailure)
 } derive(Eq, @debug.Debug)
 
+pub(all) enum PreparationResult {
+  Prepared(@event.EventRecord, Array[@delivery.Delivery])
+  PreparationRejected(@core.VerificationFailure)
+} derive(Eq, @debug.Debug)
+
 // Type aliases
 
 // Traits
-

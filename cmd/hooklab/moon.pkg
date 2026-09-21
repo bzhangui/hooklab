@@ -6,6 +6,7 @@ import {
   "hooklab/hooklab/hooklab/delivery",
   "hooklab/hooklab/hooklab/engine",
   "hooklab/hooklab/hooklab/gateway",
+  "hooklab/hooklab/hooklab/outbound",
   "hooklab/hooklab/hooklab/pipeline",
   "hooklab/hooklab/hooklab/providers",
   "hooklab/hooklab/hooklab/report",
@@ -20,7 +21,7 @@ options(
   targets: {
     "io_js.mbt": [ "js" ],
     "io_stub.mbt": [ "not", "js" ],
-    "gateway_runtime_js.mbt": [ "js" ],
+    "gateway_runtime_sqlite_js.mbt": [ "js" ],
     "environment_js.mbt": [ "js" ],
     "environment_stub.mbt": [ "not", "js" ],
     "gateway_runtime_stub.mbt": [ "not", "js" ],

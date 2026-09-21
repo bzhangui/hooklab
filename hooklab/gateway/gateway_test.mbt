@@ -76,3 +76,30 @@ test "invalid signatures never pollute event or idempotency state" {
   assert_true(gateway.accept(request, ["gateway-secret"], 0L) is Rejected(_))
   assert_eq(gateway.stats().events, 0)
 }
+
+///|
+test "prepare is side effect free and can be committed later" {
+  let gateway = Gateway::new([
+    {
+      name: "paid",
+      path: "status",
+      operator: @engine.Equals,
+      expected: "paid",
+      target: "https://billing.test/webhook",
+    },
+  ])
+  let request = generic_request("prepared-1", "{\"status\":\"paid\"}")
+  match gateway.prepare(request, ["gateway-secret"], 100000L) {
+    Prepared(event, deliveries) => {
+      assert_eq(event.id, "generic-hmac:prepared-1")
+      assert_eq(deliveries.length(), 1)
+    }
+    PreparationRejected(failure) => fail(failure.message)
+  }
+  assert_eq(gateway.stats().events, 0)
+  assert_eq(gateway.stats().pending, 0)
+  assert_true(
+    gateway.accept(request, ["gateway-secret"], 100000L) is Accepted(_, _),
+  )
+  assert_eq(gateway.stats().events, 1)
+}
