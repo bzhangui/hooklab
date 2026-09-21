@@ -21,17 +21,19 @@ implied capability of the current release.
 
 ## 0.4 — Transactional adapters
 
-- Storage interface with SQLite and PostgreSQL implementations
-- Transactional idempotency and work claiming
-- Lease expiry and worker crash recovery
-- Migration tooling and backup verification
+- [x] SQLite WAL adapter with atomic event and delivery commits
+- [ ] PostgreSQL adapter and shared storage contract suite
+- [x] Transactional idempotency and conditional work claiming
+- [x] Lease expiry, fencing, and worker crash recovery
+- [ ] General migration tooling and backup verification
 
 ## 0.5 — Outbound webhook service
 
-- Applications, consumers, endpoints, and subscriptions
-- Event publication API and provider-neutral signing
-- Consumer portal for delivery history and secret rotation
-- SDKs and conformance fixtures
+- [x] Configuration-managed applications, endpoints, and subscriptions
+- [x] Authenticated event publication API and provider-neutral signing
+- [ ] Dynamic consumer management and authenticated control plane
+- [ ] Consumer portal for delivery history and secret rotation
+- [ ] SDKs and conformance fixtures
 
 ## 1.0 — Production hardening
 

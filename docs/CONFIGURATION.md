@@ -4,7 +4,9 @@ HookLab configuration version 1 moves repeatable gateway settings out of a
 long command line while keeping secret values out of the repository. The file
 selects one authenticated provider, a loopback port, a state directory, and
 one or more content-based delivery routes. A route may also define a bounded,
-deterministic JSON transformation.
+deterministic JSON transformation. An optional `outbound` object declares
+publisher applications, subscriber endpoints, and subscriptions without
+putting token or signing-secret values in the file.
 
 ## Validate before starting
 
@@ -51,6 +53,7 @@ rejected even if the rest of the configuration is valid.
 | `routes` | yes | Non-empty array of unique named routes |
 | `delivery_limits` | no | Per-target outbound concurrency and rate policies |
 | `circuit_breakers` | no | Opt-in per-target failure circuit policies |
+| `outbound` | no | Configuration-managed applications, endpoints, and subscriptions |
 
 Each route has these fields:
 
@@ -95,6 +98,37 @@ errors or HTTP 408, 425, 429, or 5xx; permanent HTTP 4xx does not trip it.
 After cooldown, only one half-open probe may run. A success closes the circuit;
 a retryable failure reopens it. Pending work waits without consuming an attempt
 or rate token. The state is process-local and resets after restart.
+
+## Outbound applications, endpoints, and subscriptions
+
+`outbound.applications` entries require a unique `id` and a
+`publish_token_env`. `outbound.endpoints` entries require a unique `id`, an
+HTTP(S) `url`, a `signing_secret_env`, and a public `key_id`.
+`outbound.subscriptions` entries require a unique `id`, valid `application` and
+`endpoint` references, and a non-empty `event_types` array. An event type can
+be exact or `*`. Exact event types and public key IDs are delivery-header
+tokens of at most 128 characters using letters, digits, `.`, `_`, `-`, `:`, or
+`/`; `*` is valid only as the complete subscription wildcard. Every matching
+subscription produces independent delivery work, including overlapping exact
+and wildcard subscriptions.
+
+An endpoint URL must have a non-empty host and may use only `http://` or
+`https://`; an optional numeric port must be in the range 1 through 65535.
+Bracketed IPv6 hosts are supported. Userinfo/credentials (`@`), query strings,
+fragments, backslashes, and ASCII whitespace or control characters are not
+allowed. Never place tokens, API keys, or other sensitive information in the
+URL.
+
+The parser rejects inline `token`, `publish_token`, `secret`, and
+`signing_secret` values. Startup also fails if an enabled application's token
+or enabled endpoint's signing secret is absent from its configured environment
+variable. Safe resource metadata is available at `/api/outbound/catalog`, but
+environment-variable names and secret values are never returned.
+
+See [OUTBOUND.md](OUTBOUND.md) and
+[`examples/gateway/outbound-config.json`](../examples/gateway/outbound-config.json)
+for the publication API, signature format, complete example, and error
+semantics.
 
 ## Bounded route transforms
 

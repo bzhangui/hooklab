@@ -22,7 +22,7 @@ JSON route matching + bounded transform ─失败──▶ 422, no side effects
 delivery-id check-and-record ─重复──▶ acknowledge, no side effects
     │
     ▼
-accepted event ──▶ atomic snapshot ──▶ redacted management view
+accepted event ──▶ SQLite transaction ──▶ redacted management view
     │
     ▼
 delivery queue
@@ -35,6 +35,28 @@ per-target rate/concurrency + optional circuit gate
     └──permanent/exhausted──────────▶ dead letter ──▶ manual recovery
 ```
 
+Outbound publication enters the same durable delivery path through a separate
+authenticated boundary:
+
+```text
+Bearer publisher token + Idempotency-Key + exact JSON body
+    │
+    ▼
+application + exact/wildcard subscription planning
+    │
+    ▼
+SQLite transaction: idempotency fingerprint + event + N deliveries
+    │
+    ▼
+leased Worker claim + fencing token
+    │
+    ▼
+per-endpoint HMAC signature over exact persisted body
+    │
+    ▼
+existing retry / circuit / dead-letter / replay path
+```
+
 顺序属于安全属性：只有验签成功的数据才能进入路由和转换；所有匹配路由的转换都必须在写入幂等记录前完成，因此超限或缺失路径不会留下部分状态；只有首次出现的 delivery ID 才能触发副作用。管理接口只使用脱敏副本，原始正文和按路由生成的正文仅保存在受保护的本地交付状态中。
 
 ## 包边界
@@ -44,20 +66,21 @@ per-target rate/concurrency + optional circuit gate
 - `providers` 负责头格式、签名输入与时间戳规则，不承载业务副作用。
 - `engine` 提供幂等、路由、脱敏和重试等纯规则或小状态组件。
 - `event` 定义已接收事件以及可替换的查询存储语义。
-- `delivery` 定义可持久化的投递生命周期、领取规则、死信恢复，以及按目标熔断与匿名耗时统计。
+- `delivery` 定义可持久化的投递生命周期、租约领取、fencing、死信恢复，以及按目标熔断与匿名耗时统计。
+- `outbound` 定义应用发布、订阅匹配、确定性标识、内容指纹和出站 HMAC 签名协议。
 - `contract` 校验事件传输契约，并一次返回全部问题。
 - `config` 解析版本化部署配置，拒绝明文密钥并聚合字段错误。
 - `transform` 执行 set/remove/copy JSON 规则并强制输入、输出与操作数预算。
 - `gateway` 固化验签、路由转换、幂等、持久化和任务创建的顺序。
 - `pipeline` 保留轻量库使用场景的安全处理入口。
 - `report` 只接收处理结果，不能访问密钥。
-- `cmd/hooklab` 提供 JS/Node I/O 适配、本地持久化、管理 API 与控制台。
+- `cmd/hooklab` 提供 JS/Node I/O、SQLite WAL 事务适配、发布与管理 API 及控制台。
 
 ## 生产扩展
 
-1. 用数据库唯一索引实现原子的 `(provider, delivery_id)` 插入，并给记录设置保留期。
-2. 将 `RouteMatch.target` 映射到队列主题，不要把不受信任 payload 直接用作 URL。
-3. 将重试步骤放进持久化任务队列；worker 按 `DeliveryDecision` 更新状态。
+1. 当前 SQLite 适配器用唯一约束和事务原子提交幂等键、事件与投递；下一适配器是 PostgreSQL，用于跨主机部署。
+2. Worker 先持久化 owner、lease token、expiry 和 version，再执行网络请求；完成时必须匹配全部 fencing 字段。
+3. 将 `RouteMatch.target` 映射到受信任配置，不要把不受信任 payload 直接用作 URL。
 4. 记录摘要、状态码和 trace ID，不记录密钥、认证头或未脱敏 payload。
 5. 为自定义提供方实现独立适配函数，并使用供应商官方测试向量验证。
 

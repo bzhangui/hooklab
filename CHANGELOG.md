@@ -20,6 +20,24 @@ All notable changes are documented here. HookLab follows semantic versioning.
   neutrality; process-local latency histograms with opaque target labels.
 - End-to-end coverage for circuit opening, replay admission, recovery, and
   metric redaction.
+- A pure MoonBit outbound publication domain with deterministic identifiers,
+  content fingerprints, exact/wildcard subscriptions, publisher token checks,
+  and provider-neutral HMAC-SHA256 signatures.
+- Configuration-managed outbound applications, endpoints, and subscriptions,
+  plus an authenticated and idempotent publication API.
+- A Node.js 24 SQLite WAL adapter that atomically commits idempotency, accepted
+  events, and all delivery jobs, including version 1 `state.json` migration.
+- Fenced Worker leases with conditional in-flight renewal, expiry, crash
+  recovery, and stale-completion rejection in both the MoonBit domain and
+  runnable gateway.
+- End-to-end coverage for signed retry, content-conflict idempotency, catalog
+  and management redaction, legacy migration, and Worker crash takeover.
+
+### Changed
+
+- The runnable gateway now requires Node.js 24+ and stores runtime state in
+  `hooklab.sqlite`; non-gateway JS CLI commands remain compatible with Node.js
+  18+.
 
 ### Maintenance
 

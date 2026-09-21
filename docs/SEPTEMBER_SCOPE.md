@@ -39,8 +39,12 @@ end-to-end delivery assertion. Subsequent work added process-local per-target
 outbound concurrency and rate controls, a global safety ceiling, and an
 end-to-end isolation test. Further maintenance added opt-in per-target circuit
 breaking, single half-open probes, process-local anonymized latency histograms,
-and an end-to-end recovery test. These commits extend the accepted project
-rather than replacing its subject or repository.
+and an end-to-end recovery test. The next maintenance increment added a pure
+MoonBit outbound publication/signature domain, configuration-managed
+applications/endpoints/subscriptions, an authenticated idempotent publication
+API, SQLite WAL transactions, and fenced Worker leases with crash takeover.
+These commits extend the accepted project rather than replacing its subject or
+repository.
 
 ## Acceptance evidence
 
@@ -48,8 +52,8 @@ rather than replacing its subject or repository.
 |---|---|
 | MoonBit is the primary implementation language | hooklab/* domain packages and cmd/hooklab orchestration |
 | Public traceable development | Git history after baseline 548c5e2 |
-| Runnable software | hooklab serve and docs/GATEWAY.md |
-| Tests | moon test --target all and scripts/gateway-e2e.mjs |
+| Runnable software | hooklab serve / serve-config and docs/GATEWAY.md |
+| Tests | moon test --target all and eight gateway E2E scripts |
 | Reproducible demonstration | scripts/demo.* and gateway E2E test |
 | Security boundary | SECURITY.md, redacted APIs, loopback binding |
 | Open-source compliance | MIT license and THIRD_PARTY_NOTICES.md |
@@ -64,6 +68,8 @@ private or closed-source code was used.
 
 ## Explicit non-goals for this release
 
-Version 0.2.0 does not claim distributed exactly-once delivery, an internet-safe
-multi-tenant control plane, automatic TLS termination, or a transactional
-database adapter. These are roadmap items rather than implied capabilities.
+The current release does not claim distributed exactly-once delivery, an
+internet-safe multi-tenant control plane, automatic TLS termination,
+tenant-controlled endpoint safety, or cross-host PostgreSQL high availability.
+SQLite transactions and leases cover the documented single-host deployment;
+the remaining items are roadmap work rather than implied capabilities.

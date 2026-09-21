@@ -65,11 +65,11 @@ the same delivery identifier after the configuration or payload is corrected.
 
 The original authenticated body remains the event source for audit and exact
 replay. Each delivery stores its route-specific transformed body in the local
-state file. Manual event replay reuses the persisted route-specific output, so
-it does not silently change when the current configuration changes. Older
-state files without transformed outputs remain compatible and replay the
-original event body.
+SQLite database. Manual event replay reuses the persisted route-specific
+output, so it does not silently change when the current configuration changes.
+Older version 1 state files are imported; rows without transformed outputs
+replay the original event body.
 
 Raw and transformed bodies are intentionally omitted from management API
-responses. Both can exist in the local state file, so the configured data
+responses. Both can exist in the local database, so the configured data
 directory must be protected as sensitive material.

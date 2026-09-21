@@ -14,6 +14,10 @@ node scripts/gateway-e2e.mjs
 node scripts/gateway-config-e2e.mjs
 node scripts/gateway-deadletter-e2e.mjs
 node scripts/gateway-restart-e2e.mjs
+node scripts/gateway-limits-e2e.mjs
+node scripts/gateway-circuit-e2e.mjs
+node scripts/gateway-outbound-e2e.mjs
+node scripts/gateway-lease-e2e.mjs
 ```
 
 Never commit provider secrets or real webhook payloads. Fixtures must use obvious test-only values and should be passed through the redaction policy.

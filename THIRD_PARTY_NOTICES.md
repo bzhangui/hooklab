@@ -1,6 +1,6 @@
 # Third-party notices and references
 
-HookLab's MoonBit core currently has no third-party runtime package dependency. The JavaScript gateway adapter uses only Node.js built-in modules. The repository is distributed under the MIT License.
+HookLab's MoonBit core currently has no third-party runtime package dependency. The JavaScript gateway adapter uses only Node.js built-in modules, including `node:sqlite`; no database library is vendored in this repository. The repository is distributed under the MIT License.
 
 Protocol behavior was implemented from public specifications and documentation; no provider SDK source code was copied:
 

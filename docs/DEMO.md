@@ -3,7 +3,7 @@
 ## 环境
 
 - MoonBit CLI
-- Node.js 18+（文件读取、HTML 报告和 HTTP replay 使用 JS CLI）
+- Node.js 18+（普通 JS CLI）；运行 SQLite 网关需要 Node.js 24+
 
 Windows PowerShell：
 
