@@ -27,4 +27,3 @@ pub(all) enum ProcessingResult {
 // Type aliases
 
 // Traits
-

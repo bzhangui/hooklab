@@ -17,4 +17,3 @@ pub fn verify_with_secrets(@core.WebhookRequest, Array[String], policy? : @core.
 // Type aliases
 
 // Traits
-

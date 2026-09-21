@@ -35,4 +35,3 @@ pub(all) struct WebhookContract {
 // Type aliases
 
 // Traits
-

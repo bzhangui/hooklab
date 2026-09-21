@@ -17,4 +17,3 @@ pub fn result_json(@pipeline.ProcessingResult) -> String
 // Type aliases
 
 // Traits
-

@@ -41,4 +41,3 @@ pub fn EventStore::size(Self) -> Int
 // Type aliases
 
 // Traits
-
