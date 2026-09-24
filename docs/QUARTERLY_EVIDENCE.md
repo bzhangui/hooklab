@@ -2,7 +2,7 @@
 
 本页把九月新增的 PostgreSQL 事件交付能力放进一个可以独立运行的合成场景。它是评审和维护测试材料，**不是**真实用户案例、第三方测评或生产性能承诺。八月已有的验签工具能力与九月新增范围见 [SEPTEMBER_SCOPE.md](SEPTEMBER_SCOPE.md)，完整启动与安全说明见 [PLATFORM.md](PLATFORM.md)。
 
-## 五分钟说明，约一分钟准备、三十秒故障等待
+## 已备好环境后的演示流程
 
 场景：订单系统发布 `order.created`，仓库消费者接收签名事件。脚本在本机回环地址建立两个平台实例和一个模拟消费者，只连接明确指定的专用 PostgreSQL 测试库，不向外网发请求。
 
@@ -28,6 +28,8 @@ node scripts/platform-showcase.mjs
 ```
 
 脚本打印 JSON 测试摘要，包含 `contract_rejection_without_persistence`、`failover` 和 `local_sample`。**应看通过的断言，不应期待固定毫秒数。** 接管时间包含默认 30 秒租约等待；批量耗时受机器、数据库和 CI 负载影响，仅用于在同样环境和版本下观察回归，不可外推真实吞吐量或 SLO。[CI 工作流](../.github/workflows/ci.yml)在 PostgreSQL 17 上自动运行常规双 Worker 测试和这套故障演示。公开 CI 日志提供复核入口；本文件不填写尚未实测的性能数字。
+
+一次已核实的样本：[2026-09-24 主分支 CI，提交 `80e78ea`](https://github.com/bzhangui/hooklab/actions/runs/36007818373)，运行环境为 GitHub Actions `ubuntu-24.04`、Node.js 24、PostgreSQL 17，模拟消费者在本机回环地址。非法事件未入库；故障前后同一投递 ID 被网络请求两次，接管后状态为 `delivered`，从强制终止到完成约 **30,138 ms**。随后 32 个并发发布请求的单次请求耗时 p50 为 **103 ms**、p95 为 **117 ms**，整批事件在 **322 ms** 内全部投递完成。以上是单次 CI 合成样本，不是容量上限、生产吞吐量或用户侧延迟保证；任何后续版本都应重新运行并保留原始日志。
 
 ## MoonBit 与 Node.js 的实际职责
 
