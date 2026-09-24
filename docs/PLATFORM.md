@@ -101,6 +101,9 @@ npm ci
 npm run test:platform
 # 使用专用 hooklab_test 数据库运行真正的多实例测试：
 TEST_DATABASE_URL='postgresql://postgres:postgres@127.0.0.1:5432/hooklab_test' node scripts/platform-e2e.mjs
+TEST_DATABASE_URL='postgresql://postgres:postgres@127.0.0.1:5432/hooklab_test' node scripts/platform-showcase.mjs
 ```
 
 `platform/schema.test.cjs` 使用 PGlite 检查表结构和租户外键；它不能替代真实 PostgreSQL 的并发语义。CI 的 PostgreSQL 17 服务执行双实例端到端测试。升级前备份数据库并在相同版本的测试环境演练恢复；监控 CI、死信、积压、SLO 和密钥轮换记录。
+
+第二个脚本会强制终止它自己启动的一个 Worker，以验证租约到期后的接管；同时输出仅针对本机合成负载的耗时样本。运行前请阅读[季度评选证据与边界](QUARTERLY_EVIDENCE.md)，不要将样本当成生产性能或真实用户成效。

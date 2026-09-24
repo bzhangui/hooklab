@@ -82,3 +82,8 @@ jobs:
         env:
           TEST_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/hooklab_test
         run: node scripts/platform-e2e.mjs
+      - name: PostgreSQL failover showcase
+        timeout-minutes: 2
+        env:
+          TEST_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/hooklab_test
+        run: node scripts/platform-showcase.mjs

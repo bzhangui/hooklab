@@ -44,3 +44,5 @@ node scripts/gateway-restart-e2e.mjs
 ```
 
 它们分别验证可靠重试和最终投递、永久错误进入死信后人工恢复、进程重启恢复 in-flight 任务以及跨重启持久去重。网关的人工演示命令、管理 API 和安全部署边界见 [GATEWAY.md](GATEWAY.md)。
+
+PostgreSQL 双 Worker 故障接管与合成订单事件演示见[季度评选证据说明](QUARTERLY_EVIDENCE.md)。它要求专用 PostgreSQL 测试库，并会强制终止一个由脚本启动的本地 Worker 进程；不会向外部地址发送事件。

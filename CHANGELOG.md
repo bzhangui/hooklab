@@ -6,6 +6,11 @@ All notable changes are documented here. HookLab follows semantic versioning.
 
 ### Added
 
+- A reproducible PostgreSQL order-event showcase that kills a Worker mid-delivery,
+  checks lease takeover and exact delivery identity, and reports bounded
+  synthetic loopback timings without claiming production performance.
+- A quarterly evaluation evidence guide clarifying the MoonBit/Node.js boundary,
+  demonstration steps, current limitations, and the absence of external adoption evidence.
 - A separate PostgreSQL application-event runtime with tenant-scoped
   applications, endpoints and subscriptions, RBAC management tokens, audit
   records, a consumer portal, and one-time credential rotation.

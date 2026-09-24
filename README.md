@@ -17,6 +17,10 @@ HookLab 是一个以 MoonBit 领域内核为基础的自托管 Webhook 安全与
 
 两种模式独立部署，不会自动共享或迁移历史数据。新模式的运行命令、API、安全边界和维护方法见 [PostgreSQL 平台使用说明](docs/PLATFORM.md)。
 
+## 季度评选：可复现的交付证据
+
+在专用 PostgreSQL 测试库运行 `TEST_DATABASE_URL=... node scripts/platform-showcase.mjs`，可复现“订单事件 → 仓库消费者”场景：非法事件被拒绝且不入库、Worker 处理途中被强制终止、另一实例在租约到期后接管同一交付，以及 32 条合成事件的本机耗时样本。脚本验证结果并输出 JSON；[演示与证据说明](docs/QUARTERLY_EVIDENCE.md)列出前提、观察点和不能从样本推出的生产结论。CI 会在真实 PostgreSQL 17 服务上执行这一脚本。演示不代表已有真实用户或生产部署。
+
 ## 运行事件交付网关
 
 推荐先校验版本化配置，再从环境变量读取密钥启动网关：
@@ -163,6 +167,7 @@ npm ci
 npm run test:platform
 # 使用专用 PostgreSQL 测试库设置 TEST_DATABASE_URL 后：
 node scripts/platform-e2e.mjs
+node scripts/platform-showcase.mjs
 ```
 
 项目采用 MIT 许可。
