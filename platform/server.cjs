@@ -61,29 +61,6 @@ function validId(value) { return typeof value === 'string' && core.idPattern.tes
 function jsonValue(value) { return value && typeof value === 'object' && !Array.isArray(value); }
 function safeError(error) { return {error: error.code || 'internal_error', ...(error.details ? {details: error.details} : {})}; }
 function tokenHashFromHeader(req) { const token = bearer(req); return token ? core.hashToken(token) : ''; }
-function schemaCompatible(previous, next) {
-  if (!previous.type && next.type) return false;
-  if (previous.type && next.type && previous.type !== next.type && !(previous.type === 'integer' && next.type === 'number')) return false;
-  if (next.enum && (!previous.enum || previous.enum.some(value => !next.enum.some(candidate => JSON.stringify(candidate) === JSON.stringify(value))))) return false;
-  if (previous.type === 'object') {
-    for (const key of next.required || []) if (!(previous.required || []).includes(key)) return false;
-    for (const [key, oldChild] of Object.entries(previous.properties || {})) {
-      const newChild = (next.properties || {})[key];
-      if (!newChild && next.additionalProperties === false) return false;
-      if (newChild && !schemaCompatible(oldChild, newChild)) return false;
-    }
-    if (previous.additionalProperties !== false) {
-      for (const key of Object.keys(next.properties || {})) {
-        if (!Object.hasOwn(previous.properties || {}, key)) return false;
-      }
-    }
-    if (previous.additionalProperties !== false && next.additionalProperties === false) return false;
-  }
-  if (previous.type === 'array' && !previous.items && next.items) return false;
-  if (previous.type === 'array' && previous.items && next.items && !schemaCompatible(previous.items, next.items)) return false;
-  return true;
-}
-
 async function startPlatform(options) {
   core.encryptionKey();
   assert(process.env.HOOKLAB_BOOTSTRAP_TOKEN && process.env.HOOKLAB_BOOTSTRAP_TOKEN.length >= 32, 'bootstrap_token_required');
@@ -256,7 +233,7 @@ async function startPlatform(options) {
         const prior = await client.query(`SELECT version,schema_json,require_cloudevents FROM event_contracts WHERE tenant_id=$1 AND application_id=$2 AND event_type=$3
           ORDER BY version DESC LIMIT 1 FOR UPDATE`, [tenantId, body.applicationId, body.eventType]);
         if (prior.rowCount && (body.version <= prior.rows[0].version ||
-          !schemaCompatible(prior.rows[0].schema_json, body.schema) ||
+          !callbacks.compatible(JSON.stringify(prior.rows[0].schema_json), JSON.stringify(body.schema)) ||
           !prior.rows[0].require_cloudevents && body.requireCloudEvents)) throw failure('conflict');
         await client.query('UPDATE event_contracts SET active=false WHERE tenant_id=$1 AND application_id=$2 AND event_type=$3', [tenantId, body.applicationId, body.eventType]);
         await client.query(`INSERT INTO event_contracts(tenant_id,application_id,event_type,version,schema_json,require_cloudevents)
@@ -498,4 +475,4 @@ async function startPlatform(options) {
   }};
 }
 
-module.exports = {startPlatform, schemaCompatible};
+module.exports = {startPlatform};

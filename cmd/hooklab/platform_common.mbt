@@ -135,5 +135,6 @@ fn serve_platform(args : Array[String]) -> Unit {
     },
     gateway_decision_json,
     platform_validate,
+    @contract.schema_compatible_json,
   )
 }

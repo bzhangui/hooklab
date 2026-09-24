@@ -104,8 +104,11 @@ try {
     {applicationId: 'orders', eventType: 'order.created', version: 1, requireCloudEvents: true,
       schema: {type: 'object', required: ['orderId'], properties: {orderId: {type: 'integer'}}}});
   assert.equal(contract.status, 201);
-  assert.equal((await request(baseA, apiA + '/contracts', 'POST', ownerA,
+  assert.equal((await request(baseB, apiA + '/contracts', 'POST', ownerA,
     {applicationId: 'orders', eventType: 'order.created', version: 2, requireCloudEvents: true,
+      schema: {type: 'object', required: ['orderId'], properties: {orderId: {type: 'number'}}}})).status, 201);
+  assert.equal((await request(baseA, apiA + '/contracts', 'POST', ownerA,
+    {applicationId: 'orders', eventType: 'order.created', version: 3, requireCloudEvents: true,
       schema: {type: 'object', required: ['orderId','newRequired']}})).status, 409);
 
   const publishRoute = apiA + '/applications/orders/events/order.created';

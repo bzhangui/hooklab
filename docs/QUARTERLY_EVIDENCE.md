@@ -35,7 +35,7 @@ node scripts/platform-showcase.mjs
 
 | 环节 | 主要实现 | 可核查位置 |
 |---|---|---|
-| 事件契约校验、订阅投递计划、出站签名、重试决策 | MoonBit 领域内核 | [`platform_common.mbt`](../cmd/hooklab/platform_common.mbt)、[`event_schema.mbt`](../hooklab/contract/event_schema.mbt)、[`outbound.mbt`](../hooklab/outbound/outbound.mbt) |
+| 事件契约校验与版本兼容判定、订阅投递计划、出站签名、重试决策 | MoonBit 领域内核 | [`platform_common.mbt`](../cmd/hooklab/platform_common.mbt)、[`event_schema.mbt`](../hooklab/contract/event_schema.mbt)、[`outbound.mbt`](../hooklab/outbound/outbound.mbt) |
 | HTTP、PostgreSQL 事务、租户与角色 API、Worker 领取与网络传输 | Node.js 运行时适配器 | [`server.cjs`](../platform/server.cjs)、[`worker.cjs`](../platform/worker.cjs) |
 | 统一启动与 MoonBit 回调绑定 | MoonBit JS 目标及薄适配层 | [`platform_runtime_js.mbt`](../cmd/hooklab/platform_runtime_js.mbt) |
 

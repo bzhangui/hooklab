@@ -3,7 +3,6 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const core = require('./core.cjs');
-const {schemaCompatible} = require('./server.cjs');
 
 test('tokens compare by hash and secrets round-trip without plaintext storage', () => {
   process.env.HOOKLAB_ENCRYPTION_KEY = 'a'.repeat(64);
@@ -44,9 +43,6 @@ test('contract subset rejects unsupported keywords and validates nested data', (
   assert.deepEqual(core.validateSchema(schema, {id: 1, items: ['x']}), []);
   assert.deepEqual(core.validateSchema(schema, {items: [2], extra: true}).map(x => x.code).sort(),
     ['additional_property','required','type']);
-  assert.equal(schemaCompatible(schema, {...schema, required: ['id', 'items']}), false);
-  assert.equal(schemaCompatible(schema, {...schema, properties: {...schema.properties, extra: {type: 'string'}}}), true);
-  assert.equal(schemaCompatible({type: 'object'}, {type: 'object', properties: {newField: {type: 'string'}}}), false);
 });
 
 test('trace context preserves valid trace identifiers only', () => {

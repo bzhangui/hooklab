@@ -69,6 +69,7 @@ existing retry / circuit / dead-letter / replay path
 - `delivery` 定义可持久化的投递生命周期、租约领取、fencing、死信恢复，以及按目标熔断与匿名耗时统计。
 - `outbound` 定义应用发布、订阅匹配、确定性标识、内容指纹和出站 HMAC 签名协议。
 - `contract` 校验事件传输契约，并一次返回全部问题。
+- PostgreSQL 平台通过 MoonBit 回调执行契约版本兼容判定；Node.js 只负责数据库行锁、版本写入与 HTTP 错误映射。
 - `config` 解析版本化部署配置，拒绝明文密钥并聚合字段错误。
 - `transform` 执行 set/remove/copy JSON 规则并强制输入、输出与操作数预算。
 - `gateway` 固化验签、路由转换、幂等、持久化和任务创建的顺序。

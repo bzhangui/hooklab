@@ -54,7 +54,7 @@ curl -X POST http://127.0.0.1:8787/api/tenants/acme/applications/orders/events/o
 
 ## 契约与 CloudEvents
 
-按应用和事件类型发布递增版本的契约。每次发布只激活最新版本；试图新增必填字段、收窄类型/枚举或关闭原本允许的额外字段会返回 409。契约变更在应用行锁下串行化。`GET /api/tenants/:tenant/contracts` 可查看版本与 schema。
+按应用和事件类型发布递增版本的契约。每次发布只激活最新版本；MoonBit 领域内核判定版本兼容性，试图新增必填字段、收窄类型/枚举或关闭原本允许的额外字段会返回 409。契约变更在应用行锁下串行化。`GET /api/tenants/:tenant/contracts` 可查看版本与 schema。
 
 ```bash
 curl -X POST http://127.0.0.1:8787/api/tenants/acme/contracts \

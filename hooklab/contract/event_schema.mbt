@@ -185,3 +185,128 @@ pub fn validate_event_json(
   }
   issues
 }
+
+///|
+fn schema_contains(values : Array[Json], expected : Json) -> Bool {
+  for value in values {
+    if value == expected {
+      return true
+    }
+  }
+  false
+}
+
+///|
+fn schema_compatible(previous : Json, next : Json, depth : Int) -> Bool {
+  if depth > 16 {
+    return false
+  }
+  let old_type = event_text(previous, "type")
+  let new_type = event_text(next, "type")
+  if old_type is None && new_type is Some(_) {
+    return false
+  }
+  match (old_type, new_type) {
+    (Some(old), Some(new)) if old != new &&
+      !(old == "integer" && new == "number") => return false
+    _ => ()
+  }
+  match event_field(next, "enum") {
+    Some(Array(next_values)) =>
+      match event_field(previous, "enum") {
+        Some(Array(old_values)) =>
+          for old in old_values {
+            if !schema_contains(next_values, old) {
+              return false
+            }
+          }
+        _ => return false
+      }
+    _ => ()
+  }
+  if old_type == Some("object") {
+    let old_required = event_field(previous, "required")
+    match event_field(next, "required") {
+      Some(Array(next_required)) =>
+        for required in next_required {
+          match old_required {
+            Some(Array(old_values)) =>
+              if !schema_contains(old_values, required) {
+                return false
+              }
+            _ => return false
+          }
+        }
+      _ => ()
+    }
+    let old_properties = event_field(previous, "properties")
+    let new_properties = event_field(next, "properties")
+    let next_rejects_extras = event_field(next, "additionalProperties")
+      is Some(False)
+    match old_properties {
+      Some(Object(old_values)) =>
+        for key, old_child in old_values {
+          let new_child = match new_properties {
+            Some(Object(values)) => values.get_from_string(key)
+            _ => None
+          }
+          match new_child {
+            Some(child) =>
+              if !schema_compatible(old_child, child, depth + 1) {
+                return false
+              }
+            None => if next_rejects_extras { return false }
+          }
+        }
+      _ => ()
+    }
+    let old_allows_extras = !(event_field(previous, "additionalProperties")
+      is Some(False))
+    if old_allows_extras {
+      match new_properties {
+        Some(Object(new_values)) =>
+          for key, _ in new_values {
+            let old_child = match old_properties {
+              Some(Object(values)) => values.get_from_string(key)
+              _ => None
+            }
+            if old_child is None {
+              return false
+            }
+          }
+        _ => ()
+      }
+      if next_rejects_extras {
+        return false
+      }
+    }
+  }
+  if old_type == Some("array") {
+    match (event_field(previous, "items"), event_field(next, "items")) {
+      (None, Some(_)) => return false
+      (Some(old), Some(new)) =>
+        if !schema_compatible(old, new, depth + 1) {
+          return false
+        }
+      _ => ()
+    }
+  }
+  true
+}
+
+///|
+/// True only if the new supported schema subset does not narrow inputs
+/// accepted by the previous version. Invalid JSON is rejected conservatively.
+pub fn schema_compatible_json(previous : String, next : String) -> Bool {
+  let old_schema = try @json.parse(previous) catch {
+    _ => return false
+  } noraise {
+    value => value
+  }
+  let new_schema = try @json.parse(next) catch {
+    _ => return false
+  } noraise {
+    value => value
+  }
+  schema_compatible(old_schema, new_schema, 0)
+}
