@@ -1,0 +1,24 @@
+groups:
+  - name: hooklab-platform
+    rules:
+      - alert: HookLabDeadLetters
+        expr: sum(hooklab_deliveries{state="dead_lettered"}) > 0
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: HookLab has dead-lettered deliveries
+      - alert: HookLabBacklogOld
+        expr: max(hooklab_backlog_oldest_age_seconds) > 300
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: HookLab delivery backlog is older than five minutes
+      - alert: HookLabNoHealthyInstance
+        expr: absent(up{job="hooklab-platform"} == 1)
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: No HookLab platform instance is healthy

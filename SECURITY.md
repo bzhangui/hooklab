@@ -8,9 +8,9 @@ The implementation validates signature syntax and compares fixed-length digests 
 
 ## Boundaries and residual risks
 
-- The core in-memory stores are process-local. The Node gateway uses SQLite WAL transactions, unique constraints, leases, and fencing for same-host competing Workers. Cross-host deployments still require a shared PostgreSQL-style adapter.
+- The core in-memory stores are process-local. `serve-config` uses SQLite WAL for same-host Workers. The separate `serve-platform` adapter uses shared PostgreSQL for multiple Workers; neither mode provides exactly-once delivery.
 - The gateway SQLite database and WAL may contain authenticated raw bodies and route-specific transformed bodies because exact delivery and replay require them. Protect the full data directory as production-sensitive material; public APIs expose neither body and show only redacted event copies.
-- The built-in management server has no user authentication and therefore
+- The SQLite built-in management server has no user authentication and therefore
   binds only to `127.0.0.1`. It rejects non-loopback `Host` values to block DNS
   rebinding and rejects cross-origin browser management writes. Remote
   deployments require an authenticated TLS reverse proxy, access control for
@@ -29,6 +29,15 @@ The implementation validates signature syntax and compares fixed-length digests 
 - Delivery is at least once. Downstream consumers must deduplicate with the HookLab delivery or event identifier.
 - Publisher idempotency prevents repeated HookLab work for the same application/key/content, but it does not make downstream side effects exactly once. Reusing a key with different content is rejected.
 - Redaction is key-based and cannot recognize every sensitive value. Configure additional field names for domain-specific data.
+
+## PostgreSQL platform security boundary
+
+- Tenant management APIs require hashed bearer tokens with Owner/Developer/Viewer roles, and every query is scoped by tenant ID. The database schema adds composite tenant/event foreign keys, but does not enable PostgreSQL row-level security; the application and database account remain trusted components. Use a dedicated least-privilege database account.
+- Publisher tokens are generated randomly and stored only as SHA-256 digests. Endpoint signing keys and queued-delivery snapshots are encrypted with AES-256-GCM. Keep `HOOKLAB_ENCRYPTION_KEY` in a secret manager and back it up separately from PostgreSQL; loss of this key prevents signing previously queued work. Key material is returned only when created or rotated.
+- Platform management APIs return metadata, not raw event bodies or stored encrypted secrets. PostgreSQL itself holds plaintext event bodies to support exact delivery. Treat backups, SQL access, logs, and snapshots as sensitive. Role tokens are not a substitute for network access controls.
+- Tenant-configured targets allow HTTPS only, except an explicit loopback HTTP integration-test flag. Creation and every attempt resolve all DNS answers, reject non-public addresses, and pin the connection to a checked address. Redirects are not followed; URL credentials and query parameters are forbidden. Network egress ACLs, trusted DNS, and destination allowlists remain recommended defense in depth.
+- The platform binds to loopback by default. If placed behind a reverse proxy, terminate TLS there, restrict direct access to the Node listener, protect database traffic, and never expose HTTP management traffic directly to the Internet. `HOOKLAB_BIND_HOST` can change the listener but does not provide TLS or proxy authentication.
+- The PostgreSQL mode has no global tenant quota, cross-instance rate limit, externally managed identity, or automatic migration from SQLite. These remain deployment risks and roadmap items. Consumer delivery is at least once; use the delivery ID as a deduplication key.
 
 ## Reporting a vulnerability
 

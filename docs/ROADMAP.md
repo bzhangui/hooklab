@@ -22,7 +22,7 @@ implied capability of the current release.
 ## 0.4 — Transactional adapters
 
 - [x] SQLite WAL adapter with atomic event and delivery commits
-- [ ] PostgreSQL adapter and shared storage contract suite
+- [x] PostgreSQL application-event adapter with dedicated schema and multi-worker CI test
 - [x] Transactional idempotency and conditional work claiming
 - [x] Lease expiry, fencing, and worker crash recovery
 - [ ] General migration tooling and backup verification
@@ -31,14 +31,17 @@ implied capability of the current release.
 
 - [x] Configuration-managed applications, endpoints, and subscriptions
 - [x] Authenticated event publication API and provider-neutral signing
-- [ ] Dynamic consumer management and authenticated control plane
-- [ ] Consumer portal for delivery history and secret rotation
+- [x] Tenant-scoped consumer management and authenticated RBAC control plane
+- [x] Consumer portal for delivery history and secret rotation
 - [ ] SDKs and conformance fixtures
 
 ## 1.0 — Production hardening
 
-- Authenticated multi-tenant control plane
-- Role-based access and audit trail
+- [x] Authenticated multi-tenant application-event control plane
+- [x] Role-based access and audit trail
+- [ ] Database-level row security and external identity integration
+- [ ] Global tenant quotas and cross-instance rate limiting
+- [ ] SQLite-to-PostgreSQL data migration and schema upgrade tooling
 - High-availability deployment guide
 - Compatibility and performance baselines
 - Stable API and upgrade policy

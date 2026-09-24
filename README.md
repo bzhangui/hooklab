@@ -4,9 +4,18 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![MoonBit](https://img.shields.io/badge/MoonBit-JS%20%7C%20Wasm%20%7C%20Native-blue)](https://www.moonbitlang.com/)
 
-HookLab 是一个用 MoonBit 编写的自托管 Webhook 安全与事件交付平台。它把最容易出事故的环节——**原始负载验签、时间窗校验、防重放、SQLite 事务持久化、路由、受限转换、应用事件发布、出站签名、Worker 租约、可靠重试、死信与回放**——放进一条可测试、可运行的处理流水线。
+HookLab 是一个以 MoonBit 领域内核为基础的自托管 Webhook 安全与事件交付平台。它把最容易出事故的环节——**原始负载验签、时间窗校验、防重放、事务持久化、路由、受限转换、应用事件发布、出站签名、Worker 租约、可靠重试、死信与回放**——放进一条可测试、可运行的处理流水线。现有 SQLite 单机模式之外，项目新增 PostgreSQL 多租户应用事件交付模式。
 
-它既适合比赛演示，也解决真实工程问题：第三方回调“为什么验签失败”、同一事件“为什么执行两次”、失败请求“如何安全复现”、下游暂时不可用“如何重试而不制造重复副作用”。核心实现不依赖云服务，MoonBit 代码可以编译到 JS、Wasm、Wasm-GC 和 Native。
+它既适合比赛演示，也解决真实工程问题：第三方回调“为什么验签失败”、同一事件“为什么执行两次”、失败请求“如何安全复现”、下游暂时不可用“如何可靠重试”。MoonBit 领域代码可以编译到 JS、Wasm、Wasm-GC 和 Native；服务器适配器运行在 Node.js。
+
+## 两种运行模式
+
+| 模式 | 适用情况 | 存储与边界 |
+|---|---|---|
+| `serve-config` | 第三方 Webhook 验签、路由和单机交付 | 本机 SQLite，静态受信任配置；现有示例可直接运行 |
+| `serve-platform` | 应用事件发布、消费者管理和多实例交付 | 共享 PostgreSQL，多租户令牌/角色、契约、CloudEvents、SLO 与告警 |
+
+两种模式独立部署，不会自动共享或迁移历史数据。新模式的运行命令、API、安全边界和维护方法见 [PostgreSQL 平台使用说明](docs/PLATFORM.md)。
 
 ## 运行事件交付网关
 
@@ -93,20 +102,25 @@ moon run --target js cmd/hooklab -- replay http://127.0.0.1:8787/webhook @exampl
 | 耗时统计 | 管理 API 提供不含目标 URL 或正文的匿名固定桶聚合指标 |
 | 契约测试 | 提供方、事件类型、Header、JSON 路径、大小限制的全量问题报告 |
 | 管理界面 | 脱敏事件 API、投递状态 API、本地 Web 控制台 |
-| CLI | sign、verify/inspect、report、route-test、contract-check、config-check、retry-plan、replay、serve、serve-config |
+| 多租户控制面 | PostgreSQL 租户、应用、端点、订阅，Owner/Developer/Viewer 角色、审计、消费者门户和一次性密钥轮换 |
+| 分布式交付 | PostgreSQL 事务入队、跨实例任务竞争领取、续租、fencing 与死信恢复；至少一次交付 |
+| 事件契约 | 版本化 JSON Schema 子集、非破坏性变更检查、CloudEvents 1.0 structured JSON 接入 |
+| 运行观测 | Prometheus 指标、24 小时 SLO、p95 尝试耗时、死信与积压告警 |
+| CLI | sign、verify/inspect、report、route-test、contract-check、config-check、retry-plan、replay、serve、serve-config、serve-platform |
 
 ## 设计边界
 
 - 必须对收到的**原始请求体**验签，不能先解析再序列化。
 - 路由转换只在验签成功后执行，并在幂等记录和持久化前原子完成；它不执行脚本、模板或网络调用。
 - 密钥不会写入 fixture、报告或日志；诊断结果只保存脱敏内容。
-- 核心库提供确定性内存语义，内置 Node 网关使用 SQLite WAL 和事务。它支持同一主机、同一数据库上的竞争领取，但跨主机高可用仍需要 PostgreSQL 等共享数据库适配器。
+- 核心库提供确定性内存语义。`serve-config` 使用 SQLite WAL；`serve-platform` 使用共享 PostgreSQL，可以运行多个投递实例，但数据库本身的高可用由部署方保障。
 - CLI 的 replay 是显式调试操作，不会绕过目标服务认证；它不会转发原始提供方签名，目标端应使用隔离的测试入口。
-- 投递领取与幂等由 SQLite 协调；限流、可选熔断和耗时指标仍仅在单个进程内生效，重启后计数清零，多实例全局配额需要外部协调。
-- 出站端点目前是受信任的启动配置。启用租户自助配置前必须增加 DNS 重绑定、私网地址、云元数据地址和重定向防护。
+- `serve-config` 的投递领取与幂等由 SQLite 协调；其限流、可选熔断和耗时指标仅在单个进程内生效。`serve-platform` 的领取与幂等由 PostgreSQL 协调，但全局租户配额仍需额外实现。
+- SQLite 模式的出站端点仍是受信任的启动配置；PostgreSQL 模式允许租户管理端点，发送时重新解析并固定公共 IP、拒绝私网和重定向。网络出口 ACL 仍是必要的第二道防线。
+- PostgreSQL 模式没有自动 TLS、跨实例全局限流、租户资源配额或数据库级 RLS；只能通过受信任的 TLS 代理和网络边界对外服务。交付是至少一次，消费者必须自行去重。
 - 当前按 UTF-8 文本处理请求体。任意二进制负载应在接入层保留原始字节后扩展 `WebhookRequest`。
 
-运行网关见 [docs/GATEWAY.md](docs/GATEWAY.md)，出站发布与验签见 [docs/OUTBOUND.md](docs/OUTBOUND.md)，声明式配置见 [docs/CONFIGURATION.md](docs/CONFIGURATION.md)，规则化转换见 [docs/TRANSFORMS.md](docs/TRANSFORMS.md)，契约验证见 [docs/CONTRACTS.md](docs/CONTRACTS.md)，架构与扩展点见 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)，提供方协议见 [docs/PROVIDERS.md](docs/PROVIDERS.md)，威胁模型见 [SECURITY.md](SECURITY.md)，性能基线见 [BENCHMARK.md](BENCHMARK.md)，后续路线见 [docs/ROADMAP.md](docs/ROADMAP.md)，九月新增范围见 [docs/SEPTEMBER_SCOPE.md](docs/SEPTEMBER_SCOPE.md)。
+运行网关见 [docs/GATEWAY.md](docs/GATEWAY.md)，PostgreSQL 平台见 [docs/PLATFORM.md](docs/PLATFORM.md)，出站发布与验签见 [docs/OUTBOUND.md](docs/OUTBOUND.md)，声明式配置见 [docs/CONFIGURATION.md](docs/CONFIGURATION.md)，规则化转换见 [docs/TRANSFORMS.md](docs/TRANSFORMS.md)，契约验证见 [docs/CONTRACTS.md](docs/CONTRACTS.md)，架构与扩展点见 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)，提供方协议见 [docs/PROVIDERS.md](docs/PROVIDERS.md)，威胁模型见 [SECURITY.md](SECURITY.md)，性能基线见 [BENCHMARK.md](BENCHMARK.md)，后续路线见 [docs/ROADMAP.md](docs/ROADMAP.md)，九月新增范围见 [docs/SEPTEMBER_SCOPE.md](docs/SEPTEMBER_SCOPE.md)。
 
 ## 项目结构
 
@@ -125,6 +139,8 @@ hooklab/gateway    验签到持久化投递的领域编排
 hooklab/pipeline   安全处理顺序
 hooklab/report     JSON 与离线 HTML 诊断
 cmd/hooklab        JS/Node CLI、本地网关与控制台
+platform           PostgreSQL 多租户 HTTP/Worker 适配器、门户与结构测试
+ops                Prometheus 告警规则示例
 examples           可复现实例
 ```
 
@@ -143,6 +159,10 @@ node scripts/gateway-deadletter-e2e.mjs
 node scripts/gateway-restart-e2e.mjs
 node scripts/gateway-outbound-e2e.mjs
 node scripts/gateway-lease-e2e.mjs
+npm ci
+npm run test:platform
+# 使用专用 PostgreSQL 测试库设置 TEST_DATABASE_URL 后：
+node scripts/platform-e2e.mjs
 ```
 
 项目采用 MIT 许可。

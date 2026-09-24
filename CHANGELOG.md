@@ -6,6 +6,17 @@ All notable changes are documented here. HookLab follows semantic versioning.
 
 ### Added
 
+- A separate PostgreSQL application-event runtime with tenant-scoped
+  applications, endpoints and subscriptions, RBAC management tokens, audit
+  records, a consumer portal, and one-time credential rotation.
+- Transactional event/fan-out persistence, multi-instance `SKIP LOCKED`
+  claims, renewable fenced leases, signed delivery, retry history and manual
+  dead-letter recovery.
+- Versioned event contracts with a deliberately bounded JSON Schema subset,
+  compatibility checks and CloudEvents 1.0 structured JSON publication.
+- Prometheus metrics, a tenant-scoped 24-hour SLO, dead-letter/backlog alerts,
+  alert-rule example, and PostgreSQL integration tests in CI.
+- `docs/PLATFORM.md` with deployment, API, security, operation and test notes.
 - Version 1 declarative gateway configuration with named content routes.
 - `config-check` full-issue validation and `serve-config` runtime startup.
 - Environment-variable-only secret references; inline secrets are rejected.

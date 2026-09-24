@@ -44,7 +44,10 @@ MoonBit outbound publication/signature domain, configuration-managed
 applications/endpoints/subscriptions, an authenticated idempotent publication
 API, SQLite WAL transactions, and fenced Worker leases with crash takeover.
 These commits extend the accepted project rather than replacing its subject or
-repository.
+repository. A subsequent increment adds a separate PostgreSQL application-event
+runtime with RBAC tenant control, a consumer portal, contract versions,
+CloudEvents structured JSON, multi-worker claims, SLO metrics and alerts. The
+existing SQLite provider-ingress mode remains available and independent.
 
 ## Acceptance evidence
 
@@ -53,7 +56,7 @@ repository.
 | MoonBit is the primary implementation language | hooklab/* domain packages and cmd/hooklab orchestration |
 | Public traceable development | Git history after baseline 548c5e2 |
 | Runnable software | hooklab serve / serve-config and docs/GATEWAY.md |
-| Tests | moon test --target all and eight gateway E2E scripts |
+| Tests | moon test --target all, eight gateway E2E scripts, platform unit/schema tests and PostgreSQL multi-worker E2E in CI |
 | Reproducible demonstration | scripts/demo.* and gateway E2E test |
 | Security boundary | SECURITY.md, redacted APIs, loopback binding |
 | Open-source compliance | MIT license and THIRD_PARTY_NOTICES.md |
@@ -68,8 +71,10 @@ private or closed-source code was used.
 
 ## Explicit non-goals for this release
 
-The current release does not claim distributed exactly-once delivery, an
-internet-safe multi-tenant control plane, automatic TLS termination,
-tenant-controlled endpoint safety, or cross-host PostgreSQL high availability.
-SQLite transactions and leases cover the documented single-host deployment;
-the remaining items are roadmap work rather than implied capabilities.
+The current release does not claim distributed exactly-once delivery,
+automatic TLS termination, database-level tenant RLS, global tenant quotas,
+cross-instance rate limiting, SQLite data migration, or PostgreSQL database
+high availability. The platform control plane needs a trusted TLS proxy and
+network isolation before external exposure. SQLite transactions and leases
+cover the documented single-host deployment; the separate PostgreSQL runtime
+adds multi-process application-event delivery without changing SQLite ingress.
