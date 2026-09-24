@@ -8,6 +8,8 @@ All notable changes are documented here. HookLab follows semantic versioning.
 
 - Contract-version compatibility decisions now run in the MoonBit domain core
   rather than the Node.js PostgreSQL adapter, with cross-target and gateway tests.
+- The gateway rate-limit E2E now measures monotonic network arrival time and
+  allows CI transport jitter; exact window boundaries remain unit-tested.
 - A reproducible PostgreSQL order-event showcase that kills a Worker mid-delivery,
   checks lease takeover and exact delivery identity, and reports bounded
   synthetic loopback timings without claiming production performance.
