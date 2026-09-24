@@ -1,5 +1,6 @@
 /_build/
 /target/
+/node_modules/
 /.mooncakes/
 /.hooklab-data/
 *.sqlite

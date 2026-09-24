@@ -15,6 +15,7 @@ fn usage() -> Unit {
     #|  hooklab replay <url> <body|@file>
     #|  hooklab serve <provider> <secret[,old-secret]|-> <target-url[,target-url]> [port] [data-dir]
     #|  hooklab serve-config <config.json>
+    #|  hooklab serve-platform [port]   (PostgreSQL; run from repository root)
     #|
     #|Providers: github, stripe, feishu, generic-hmac
     #|Prefix a body with @ to read UTF-8 content from a file.
@@ -285,7 +286,8 @@ fn do_retry_plan(args : Array[String]) -> Unit {
 fn command_args(all : Array[String]) -> Array[String] {
   let commands = [
     "sign", "verify", "inspect", "report", "route-test", "contract-check", "config-check",
-    "retry-plan", "replay", "serve", "serve-config", "help", "--help", "-h",
+    "retry-plan", "replay", "serve", "serve-config", "serve-platform", "help", "--help",
+    "-h",
   ]
   for i = 0; i < all.length(); i = i + 1 {
     if commands.contains(all[i]) {
@@ -316,6 +318,7 @@ fn main {
     "retry-plan" => do_retry_plan(args)
     "serve" => serve_gateway(args)
     "serve-config" => serve_configured_gateway(args)
+    "serve-platform" => serve_platform(args)
     "replay" => {
       guard args.length() >= 3 else {
         usage()

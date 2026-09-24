@@ -1,0 +1,10 @@
+{
+  "name": "hooklab-platform-runtime",
+  "private": true,
+  "version": "0.2.0",
+  "description": "PostgreSQL adapter for the MoonBit HookLab event delivery platform",
+  "engines": {"node": ">=24"},
+  "dependencies": {"ipaddr.js": "^2.2.0", "pg": "^8.23.0"},
+  "devDependencies": {"@electric-sql/pglite": "^0.5.8"},
+  "scripts": {"test:platform": "node --test platform/*.test.cjs"}
+}

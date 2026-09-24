@@ -25,5 +25,7 @@ options(
     "environment_js.mbt": [ "js" ],
     "environment_stub.mbt": [ "not", "js" ],
     "gateway_runtime_stub.mbt": [ "not", "js" ],
+    "platform_runtime_js.mbt": [ "js" ],
+    "platform_runtime_stub.mbt": [ "not", "js" ],
   },
 )

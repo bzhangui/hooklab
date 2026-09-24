@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <title>HookLab 消费者门户</title>
+  <link rel="stylesheet" href="/portal.css">
+  <script src="/portal.js" defer></script>
+</head>
+<body>
+  <header><h1>HookLab</h1><p>事件交付 · 消费者门户</p></header>
+  <main>
+    <section class="panel">
+      <h2>连接租户</h2>
+      <p>使用租户 ID 和管理令牌。令牌仅保存在当前页面内存，刷新后需重新输入。</p>
+      <form id="connection"><label>租户 ID <input id="tenant" required autocomplete="off"></label>
+        <label>管理令牌 <input id="token" type="password" required autocomplete="off"></label>
+        <button type="submit">连接并刷新</button><button id="disconnect" type="button">断开</button></form>
+    </section>
+    <p id="notice" role="status" aria-live="polite"></p>
+    <div class="grid">
+      <section class="panel"><h2>24 小时 SLO</h2><pre id="slo">尚未连接</pre></section>
+      <section class="panel"><h2>告警</h2><pre id="alerts">尚未连接</pre></section>
+    </div>
+    <section class="panel"><h2>资源目录</h2><pre id="catalog">尚未连接</pre></section>
+    <div class="grid">
+      <section class="panel"><h2>最近事件</h2><pre id="events">尚未连接</pre></section>
+      <section class="panel"><h2>最近交付</h2><pre id="deliveries">尚未连接</pre></section>
+    </div>
+    <section class="panel">
+      <h2>资源管理</h2>
+      <p>创建和轮换时的令牌或签名密钥只显示一次；请立即安全保存。已有密钥不会在目录中回显。</p>
+      <form id="action">
+        <label>操作 <select id="operation">
+          <option value="applications">创建应用</option>
+          <option value="endpoints">创建端点</option>
+          <option value="subscriptions">创建订阅</option>
+          <option value="contracts">发布事件契约</option>
+          <option value="applications/rotate-token">轮换应用令牌</option>
+          <option value="endpoints/rotate-secret">轮换端点密钥</option>
+          <option value="deliveries/retry">重试死信</option>
+        </select></label>
+        <label>目标 ID（轮换与重试时填写） <input id="resource-id" autocomplete="off"></label>
+        <label>JSON 参数（创建时填写） <textarea id="input" rows="8" spellcheck="false">{"id":"orders"}</textarea></label>
+        <button type="submit">执行</button>
+      </form>
+      <pre id="action-result" aria-live="polite"></pre>
+    </section>
+  </main>
+  <footer>HookLab · 管理 API 不返回原始事件正文或持久化密钥。</footer>
+</body>
+</html>
