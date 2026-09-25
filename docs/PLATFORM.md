@@ -4,6 +4,8 @@
 
 ## 快速启动
 
+评审或本机试用可以先使用 [Docker Compose 一键启动与备份恢复](DEPLOYMENT.md)。以下命令适合已有独立 PostgreSQL 的手动部署；Compose 试用环境不等于公网生产部署。
+
 环境：Node.js 24+、MoonBit CLI、PostgreSQL 17（CI 验证版本；其他版本尚未验证）。从仓库根目录执行：
 
 ```bash

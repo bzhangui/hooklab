@@ -4,8 +4,17 @@ All notable changes are documented here. HookLab follows semantic versioning.
 
 ## Unreleased
 
+No changes since the release candidate below.
+
+## 0.3.0-rc.1 — 2026-09-25
+
+Release candidate for local trial and evaluation, not a production-readiness claim.
+
 ### Added
 
+- A loopback-only Docker Compose trial deployment with generated private
+  credentials, a non-root application container, and a backup/isolated-restore
+  verification command. Real-user evidence still requires an authorized pilot.
 - PostgreSQL delivery-attempt records are now created with the claim, marked
   interrupted on expired-lease takeover, and finalized transactionally; SLO
   latency excludes attempts with unknown completion time.

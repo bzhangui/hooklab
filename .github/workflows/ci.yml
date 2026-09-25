@@ -87,3 +87,23 @@ jobs:
         env:
           TEST_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/hooklab_test
         run: node scripts/platform-showcase.mjs
+
+  deployment:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - name: Use Node.js 24
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          package-manager-cache: false
+      - name: Build and start private Compose deployment
+        run: npm run quickstart
+      - name: Seed disposable synthetic event
+        run: node scripts/compose-smoke.mjs
+      - name: Restore backup to isolated database
+        run: npm run backup:verify
+      - name: Stop temporary deployment
+        if: always()
+        run: docker compose down

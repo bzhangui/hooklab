@@ -25,7 +25,8 @@ implied capability of the current release.
 - [x] PostgreSQL application-event adapter with dedicated schema and multi-worker CI test
 - [x] Transactional idempotency and conditional work claiming
 - [x] Lease expiry, fencing, and worker crash recovery
-- [ ] General migration tooling and backup verification
+- [x] Compose trial deployment with isolated database backup/restore verification
+- [ ] General migration tooling, off-host backup automation and production recovery exercise
 
 ## 0.5 — Outbound webhook service
 

@@ -1,0 +1,14 @@
+.git
+.env
+.env.*
+!.env.example
+_build
+target
+node_modules
+.hooklab-data
+backups
+*.sqlite
+*.sqlite-wal
+*.sqlite-shm
+项目申报书.md
+*.log

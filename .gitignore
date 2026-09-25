@@ -3,6 +3,7 @@
 /node_modules/
 /.mooncakes/
 /.hooklab-data/
+/backups/
 *.sqlite
 *.sqlite-wal
 *.sqlite-shm

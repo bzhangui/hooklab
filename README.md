@@ -1,5 +1,7 @@
 # HookLab
 
+当前版本：`0.3.0-rc.1`（本机试用候选版，非生产就绪承诺）。
+
 [![CI](https://github.com/bzhangui/hooklab/actions/workflows/ci.yml/badge.svg)](https://github.com/bzhangui/hooklab/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![MoonBit](https://img.shields.io/badge/MoonBit-JS%20%7C%20Wasm%20%7C%20Native-blue)](https://www.moonbitlang.com/)
@@ -16,6 +18,10 @@ HookLab 是一个以 MoonBit 领域内核为基础的自托管 Webhook 安全与
 | `serve-platform` | 应用事件发布、消费者管理和多实例交付 | 共享 PostgreSQL，多租户令牌/角色、契约、CloudEvents、SLO 与告警 |
 
 两种模式独立部署，不会自动共享或迁移历史数据。新模式的运行命令、API、安全边界和维护方法见 [PostgreSQL 平台使用说明](docs/PLATFORM.md)。
+
+## 本机一键试用与备份验证
+
+安装 Docker Compose v2 和 Node.js 24+ 后，在仓库根目录运行 `npm run quickstart`：脚本生成 Git 忽略的私有 `.env`，构建应用并启动 PostgreSQL 与 HookLab，默认只开放 `http://127.0.0.1:8787/`。运行 `npm run backup:verify` 会把数据库备份恢复到隔离的临时数据库核对，归档保存在本机 `backups/`。密钥不在源码和数据库归档中，须单独安全备份。完整边界见 [部署与恢复说明](docs/DEPLOYMENT.md)；真实用户试用尚未开展，需先按[授权试用清单](docs/PILOT.md)准备。
 
 ## 季度评选：可复现的交付证据
 

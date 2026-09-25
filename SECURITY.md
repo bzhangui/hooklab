@@ -38,6 +38,7 @@ The implementation validates signature syntax and compares fixed-length digests 
 - Tenant-configured targets allow HTTPS only, except an explicit loopback HTTP integration-test flag. Creation and every attempt resolve all DNS answers, reject non-public addresses, and pin the connection to a checked address. Redirects are not followed; URL credentials and query parameters are forbidden. Network egress ACLs, trusted DNS, and destination allowlists remain recommended defense in depth.
 - The platform binds to loopback by default. If placed behind a reverse proxy, terminate TLS there, restrict direct access to the Node listener, protect database traffic, and never expose HTTP management traffic directly to the Internet. `HOOKLAB_BIND_HOST` can change the listener but does not provide TLS or proxy authentication.
 - The PostgreSQL mode has no global tenant quota, cross-instance rate limit, externally managed identity, or automatic migration from SQLite. These remain deployment risks and roadmap items. Consumer delivery is at least once; use the delivery ID as a deduplication key.
+- The Compose quickstart binds only to host loopback and is meant for local trials. Its private `.env` holds the database password, encryption key and privileged tokens; it is excluded from Git and Docker build context but still needs restricted host access and separate encrypted backup. The backup verification archive contains event bodies and should not be published. The Compose database role is not a production least-privilege layout.
 
 ## Reporting a vulnerability
 

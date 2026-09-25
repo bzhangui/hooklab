@@ -1,0 +1,34 @@
+services:
+  database:
+    image: postgres:17
+    environment:
+      POSTGRES_DB: hooklab
+      POSTGRES_USER: hooklab
+      POSTGRES_PASSWORD: ${HOOKLAB_DB_PASSWORD:?Run npm run quickstart first}
+    volumes:
+      - hooklab_postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U hooklab -d hooklab"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  app:
+    build: .
+    init: true
+    environment:
+      DATABASE_URL: postgresql://hooklab:${HOOKLAB_DB_PASSWORD:?Run npm run quickstart first}@database:5432/hooklab
+      HOOKLAB_ENCRYPTION_KEY: ${HOOKLAB_ENCRYPTION_KEY:?Run npm run quickstart first}
+      HOOKLAB_BOOTSTRAP_TOKEN: ${HOOKLAB_BOOTSTRAP_TOKEN:?Run npm run quickstart first}
+      HOOKLAB_METRICS_TOKEN: ${HOOKLAB_METRICS_TOKEN:?Run npm run quickstart first}
+      HOOKLAB_BIND_HOST: 0.0.0.0
+    ports:
+      - "127.0.0.1:${HOOKLAB_PORT:-8787}:8787"
+    depends_on:
+      database:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  hooklab_postgres:
