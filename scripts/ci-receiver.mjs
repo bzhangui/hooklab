@@ -34,4 +34,6 @@ const server = http.createServer((request, response) => {
     response.end();
   });
 });
-server.listen(8766, '127.0.0.1');
+// Host access remains bound to 127.0.0.1 by compose.ci.yaml; listen on the
+// container interface so Docker's host-port forwarding can reach this probe.
+server.listen(8766, '0.0.0.0');
