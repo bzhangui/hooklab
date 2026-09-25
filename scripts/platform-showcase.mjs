@@ -137,7 +137,17 @@ try {
   assert.equal(recovered.attempt, 2);
   assert.equal(events.filter(item => item.eventId === accepted.data.eventId).length, 2);
   assert.equal(new Set(events.filter(item => item.eventId === accepted.data.eventId).map(item => item.deliveryId)).size, 1);
-  assert.equal((await client.query('SELECT count(*)::int AS n FROM delivery_attempts WHERE delivery_id=$1', [recovered.id])).rows[0].n, 1);
+  const attempts = await client.query('SELECT attempt,outcome FROM delivery_attempts WHERE delivery_id=$1 ORDER BY id', [recovered.id]);
+  assert.deepEqual(attempts.rows, [
+    {attempt: 1, outcome: 'interrupted'},
+    {attempt: 2, outcome: 'delivered'},
+  ]);
+  const publicAttempts = await api(baseB, route + '/deliveries/' + recovered.id + '/attempts', 'GET', owner);
+  assert.equal(publicAttempts.status, 200);
+  assert.deepEqual(publicAttempts.data.map(item => item.outcome), ['delivered', 'interrupted']);
+  const metrics = await fetch(baseB + '/metrics', {headers: {authorization: 'Bearer ' + metricsToken}});
+  assert.equal(metrics.status, 200);
+  assert.match(await metrics.text(), /hooklab_delivery_attempts_24h\{outcome="interrupted"\}/);
 
   // The following timings describe only this disposable loopback setup. They
   // are not production throughput or an external-user deployment claim.
@@ -161,7 +171,7 @@ try {
   const summary = {
     scenario: 'synthetic_loopback_order_delivery',
     contract_rejection_without_persistence: true,
-    failover: {same_delivery_id: true, network_attempts: 2, persisted_successful_attempts: 1,
+    failover: {same_delivery_id: true, network_attempts: 2, persisted_attempts: ['interrupted', 'delivered'],
       lease_takeover_ms: recoveryMs, final_state: recovered.state},
     local_sample: {events: sampleSize, concurrent_publish_calls: sampleSize,
       publish_batch_ms: acceptedMs, publish_p50_ms: percentile(publishLatencies, 0.5),

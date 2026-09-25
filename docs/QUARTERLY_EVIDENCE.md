@@ -8,7 +8,7 @@
 
 1. 注册租户、应用、端点、订阅和要求 CloudEvents 的订单契约；故意发布类型错误的 `orderId`，断言返回 422 且数据库没有事件。
 2. 发布有效订单。第一个 Worker 已领取任务并把请求发往模拟消费者后，脚本强制终止该 Worker；第二个实例在租约过期后接管同一交付。
-3. 断言最终状态是 `delivered`、投递 ID 没有改变、网络上看到了两次尝试，而数据库只记录成功接管后的完成尝试。这展示 **at least once** 与消费者去重的必要性，不是 exactly once。
+3. 断言最终状态是 `delivered`、投递 ID 没有改变、网络上看到了两次尝试；数据库和租户历史分别保留 `interrupted` 与 `delivered` 两条尝试记录。这展示 **at least once** 与消费者去重的必要性，不是 exactly once。`interrupted` 只证明原 Worker 没有留下终态，不证明请求已到达消费者。
 4. 并发发布 32 条合成订单事件，记录本机发布请求的 p50/p95 和整批完成耗时；再断言错误管理令牌无权访问租户目录。
 
 准备 Node.js 24+、MoonBit CLI 和独立 PostgreSQL 17 数据库，先在仓库根目录运行 `npm ci --ignore-scripts`。数据库名必须为 `hooklab_test` 或 `hooklab_test_` 后接小写字母/数字；脚本不删表、不清除已有记录，但会写入随机命名的合成租户，因此不要使用共享或生产数据库。
@@ -29,7 +29,7 @@ node scripts/platform-showcase.mjs
 
 脚本打印 JSON 测试摘要，包含 `contract_rejection_without_persistence`、`failover` 和 `local_sample`。**应看通过的断言，不应期待固定毫秒数。** 接管时间包含默认 30 秒租约等待；批量耗时受机器、数据库和 CI 负载影响，仅用于在同样环境和版本下观察回归，不可外推真实吞吐量或 SLO。[CI 工作流](../.github/workflows/ci.yml)在 PostgreSQL 17 上自动运行常规双 Worker 测试和这套故障演示。公开 CI 日志提供复核入口；本文件不填写尚未实测的性能数字。
 
-一次已核实的样本：[2026-09-24 主分支 CI，提交 `80e78ea`](https://github.com/bzhangui/hooklab/actions/runs/36007818373)，运行环境为 GitHub Actions `ubuntu-24.04`、Node.js 24、PostgreSQL 17，模拟消费者在本机回环地址。非法事件未入库；故障前后同一投递 ID 被网络请求两次，接管后状态为 `delivered`，从强制终止到完成约 **30,138 ms**。随后 32 个并发发布请求的单次请求耗时 p50 为 **103 ms**、p95 为 **117 ms**，整批事件在 **322 ms** 内全部投递完成。以上是单次 CI 合成样本，不是容量上限、生产吞吐量或用户侧延迟保证；任何后续版本都应重新运行并保留原始日志。
+历史样本：[2026-09-24 主分支 CI，提交 `80e78ea`](https://github.com/bzhangui/hooklab/actions/runs/36007818373)，运行环境为 GitHub Actions `ubuntu-24.04`、Node.js 24、PostgreSQL 17，模拟消费者在本机回环地址。非法事件未入库；故障前后同一投递 ID 被网络请求两次，接管后状态为 `delivered`，从强制终止到完成约 **30,138 ms**。随后 32 个并发发布请求的单次请求耗时 p50 为 **103 ms**、p95 为 **117 ms**，整批事件在 **322 ms** 内全部投递完成。此样本早于持久化 `interrupted` 尝试记录的实现；当前版本应以最新 CI 原始日志为准。以上是单次 CI 合成样本，不是容量上限、生产吞吐量或用户侧延迟保证。
 
 ## MoonBit 与 Node.js 的实际职责
 

@@ -110,6 +110,7 @@ CREATE TABLE IF NOT EXISTS delivery_attempts (
   created_at timestamptz NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS attempts_created_idx ON delivery_attempts(created_at DESC);
+CREATE INDEX IF NOT EXISTS attempts_delivery_idx ON delivery_attempts(delivery_id,id DESC);
 CREATE TABLE IF NOT EXISTS audit_entries (
   id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
   tenant_id text NOT NULL REFERENCES tenants(id),

@@ -283,7 +283,8 @@ async function startPlatform(options) {
         WHERE tenant_id=$1 AND created_at >= now()-interval '24 hours'`, [tenantId]);
       const row = total.rows[0];
       const latency = await query(`SELECT percentile_cont(0.95) WITHIN GROUP (ORDER BY duration_ms) AS p95_ms
-        FROM delivery_attempts WHERE tenant_id=$1 AND created_at >= now()-interval '24 hours'`, [tenantId]);
+        FROM delivery_attempts WHERE tenant_id=$1 AND created_at >= now()-interval '24 hours'
+        AND outcome NOT IN ('in_flight','interrupted')`, [tenantId]);
       return send(res, 200, {window: '24h', total: row.total, delivered: row.delivered,
         deadLettered: row.dead_lettered, deliverySuccessRatio: row.total ? row.delivered / row.total : null,
         p95AttemptLatencyMs: latency.rows[0].p95_ms === null ? null : Number(latency.rows[0].p95_ms),
@@ -388,7 +389,8 @@ async function startPlatform(options) {
       count(*) FILTER (WHERE duration_ms <= 500)::int AS le500,
       count(*) FILTER (WHERE duration_ms <= 1000)::int AS le1000,
       count(*) FILTER (WHERE duration_ms <= 5000)::int AS le5000,
-      count(*) FILTER (WHERE duration_ms <= 15000)::int AS le15000 FROM delivery_attempts`);
+      count(*) FILTER (WHERE duration_ms <= 15000)::int AS le15000 FROM delivery_attempts
+      WHERE outcome NOT IN ('in_flight','interrupted')`);
     const backlog = await query(`SELECT coalesce(extract(epoch FROM now()-min(created_at)),0)::int AS oldest_seconds
       FROM deliveries WHERE state IN ('pending','scheduled')`);
     const openAlerts = await query("SELECT count(*)::int AS count FROM alerts WHERE state='open'");

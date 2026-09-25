@@ -107,7 +107,7 @@ moon run --target js cmd/hooklab -- replay http://127.0.0.1:8787/webhook @exampl
 | 契约测试 | 提供方、事件类型、Header、JSON 路径、大小限制的全量问题报告 |
 | 管理界面 | 脱敏事件 API、投递状态 API、本地 Web 控制台 |
 | 多租户控制面 | PostgreSQL 租户、应用、端点、订阅，Owner/Developer/Viewer 角色、审计、消费者门户和一次性密钥轮换 |
-| 分布式交付 | PostgreSQL 事务入队、跨实例任务竞争领取、续租、fencing 与死信恢复；至少一次交付 |
+| 分布式交付 | PostgreSQL 事务入队、跨实例任务竞争领取、续租、fencing、持久化尝试审计与死信恢复；至少一次交付 |
 | 事件契约 | 版本化 JSON Schema 子集、非破坏性变更检查、CloudEvents 1.0 structured JSON 接入 |
 | 运行观测 | Prometheus 指标、24 小时 SLO、p95 尝试耗时、死信与积压告警 |
 | CLI | sign、verify/inspect、report、route-test、contract-check、config-check、retry-plan、replay、serve、serve-config、serve-platform |

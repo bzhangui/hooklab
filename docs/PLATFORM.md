@@ -52,6 +52,8 @@ curl -X POST http://127.0.0.1:8787/api/tenants/acme/applications/orders/events/o
 
 消费者收到原始 JSON 正文、`X-HookLab-Event-Id`、`X-HookLab-Delivery-Id`、`X-HookLab-Event-Type`、`X-HookLab-Key-Id`、`X-HookLab-Timestamp`、`X-HookLab-Signature` 和 `traceparent`。签名规范与 [OUTBOUND.md](OUTBOUND.md) 相同。重试会改变时间戳但保留事件/交付 ID。消费者应以交付 ID 去重。3xx 不跟随跳转；网络错误、408/425/429/5xx 按 MoonBit 重试策略处理，其他 4xx 进入死信。
 
+Worker 领取任务时先在同一数据库事务中记录 `in_flight` 尝试，完成后更新为 `delivered`、`scheduled` 或 `dead_lettered`。如果 Worker 崩溃并由另一个实例接管，旧记录标为 `interrupted`，新尝试另起一条。`interrupted` 只表示原 Worker 未留下终态，**不能证明请求一定已到达消费者**；也不能据此保证恰好一次交付。未结束与中断的尝试不计入耗时 p95/直方图，但中断数量出现在尝试结果指标和租户历史中。
+
 ## 契约与 CloudEvents
 
 按应用和事件类型发布递增版本的契约。每次发布只激活最新版本；MoonBit 领域内核判定版本兼容性，试图新增必填字段、收窄类型/枚举或关闭原本允许的额外字段会返回 409。契约变更在应用行锁下串行化。`GET /api/tenants/:tenant/contracts` 可查看版本与 schema。

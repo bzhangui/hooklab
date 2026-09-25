@@ -28,8 +28,20 @@ function createWorker(pool, callbacks, options = {}) {
           worker_id=$1,lease_token=$2,leased_until=now()+($3::int * interval '1 millisecond'),updated_at=now()
         FROM candidate WHERE d.id=candidate.id
         RETURNING d.*`, [workerId, crypto.randomUUID(), leaseMs]);
+      const item = result.rows[0];
+      if (item) {
+        // The previous owner may have sent the request before crashing. Its
+        // terminal status is unknown, so retain a durable interrupted record.
+        await client.query(`UPDATE delivery_attempts SET outcome='interrupted'
+          WHERE delivery_id=$1 AND outcome='in_flight'`, [item.id]);
+        const attempt = await client.query(`INSERT INTO delivery_attempts
+          (tenant_id,delivery_id,attempt,status,outcome,duration_ms)
+          VALUES($1,$2,$3,NULL,'in_flight',0) RETURNING id`,
+        [item.tenant_id, item.id, item.attempt]);
+        item.attempt_record_id = attempt.rows[0].id;
+      }
       await client.query('COMMIT');
-      return result.rows[0] || null;
+      return item || null;
     } catch (error) { await client.query('ROLLBACK'); throw error; }
     finally { client.release(); }
   }
@@ -79,9 +91,13 @@ function createWorker(pool, callbacks, options = {}) {
         RETURNING tenant_id`, [outcome, Math.max(0, Number(result.delay_ms || 0)), status || null,
           outcome === 'delivered' ? null : (transportError || result.reason || 'HTTP ' + status).slice(0, 256),
           item.id, workerId, item.lease_token]);
-      if (update.rowCount) await client.query(`INSERT INTO delivery_attempts(tenant_id,delivery_id,attempt,status,outcome,duration_ms)
-        VALUES($1,$2,$3,$4,$5,$6)`,
-        [item.tenant_id, item.id, item.attempt, status || null, outcome, durationMs]);
+      if (update.rowCount) {
+        const recorded = await client.query(`UPDATE delivery_attempts
+          SET status=$1,outcome=$2,duration_ms=$3
+          WHERE id=$4 AND delivery_id=$5 AND attempt=$6 AND outcome='in_flight'`,
+        [status || null, outcome, durationMs, item.attempt_record_id, item.id, item.attempt]);
+        if (recorded.rowCount !== 1) throw new Error('delivery_attempt_record_missing');
+      }
       await client.query('COMMIT');
     } catch (error) { await client.query('ROLLBACK'); throw error; }
     finally { client.release(); }
