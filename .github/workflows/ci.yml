@@ -113,6 +113,28 @@ jobs:
         run: npm run backup:verify
       - name: Check portable archive and key fingerprint
         run: npm run backup:inspect -- "$(find backups -maxdepth 1 -name '*.dump' -print -quit)"
+      - name: Start app from backup on a fresh database volume
+        env:
+          COMPOSE_FILE: compose.yaml
+          HOOKLAB_PORT: 8788
+        run: |
+          set -euo pipefail
+          archive="$(find backups -maxdepth 1 -name '*.dump' -print -quit)"
+          test -n "$archive"
+          trap 'docker compose -p hooklab_recovery_ci down --volumes' EXIT
+          docker compose -p hooklab_recovery_ci up -d --wait database
+          schema="$(docker compose -p hooklab_recovery_ci exec -T database psql -U hooklab -d hooklab -At -c "SELECT to_regclass('public.hooklab_schema')")"
+          test -z "$schema"
+          docker compose -p hooklab_recovery_ci exec -T database pg_restore -U hooklab -d hooklab --exit-on-error --no-owner --no-acl < "$archive"
+          docker compose -p hooklab_recovery_ci up -d app
+          ready=0
+          for i in $(seq 1 60); do
+            if curl -fsS http://127.0.0.1:8788/health | grep -q '"status":"ok"'; then ready=1; break; fi
+            sleep 1
+          done
+          test "$ready" -eq 1
+          test "$(docker compose -p hooklab_recovery_ci exec -T database psql -U hooklab -d hooklab -At -c 'SELECT count(*) FROM events')" = '1'
+          echo 'Fresh-volume restore booted HookLab and retained the synthetic event.'
       - name: Stop temporary deployment
         if: always()
         run: docker compose down

@@ -17,7 +17,8 @@ Controlled-trial update; no claim of a real user pilot or production readiness.
   and duplicate suppression.
 - Isolated backup restore now checks all expected tables and decrypts a restored
   endpoint secret when present; a private manifest and offline checksum/key
-  inspection command support operator-managed off-host copies.
+  inspection command support operator-managed off-host copies. CI also boots a
+  second app against a fresh-volume restore of the synthetic backup.
 - MoonBit platform callback tests and an explicit MoonBit/Node.js evidence map;
   a controlled-pilot authorization card and recovery runbook document what is
   and is not externally verified.
