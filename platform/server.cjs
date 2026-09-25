@@ -15,7 +15,8 @@ const statusByCode = {invalid_json: 422, invalid_body: 422, invalid_id: 422, inv
   invalid_contract: 422, invalid_cloudevent: 422, invalid_cloudevent_source: 422,
   invalid_cloudevent_data: 422, invalid_cloudevent_time: 422,
   contract_violation: 422, unsupported_media_type: 415, missing_idempotency_key: 400,
-  unauthorized: 401, forbidden: 403, not_found: 404, conflict: 409, payload_too_large: 413};
+  unauthorized: 401, forbidden: 403, not_found: 404, conflict: 409, payload_too_large: 413,
+  quota_exceeded: 429};
 
 function failure(code, details) {
   const error = new Error(code);
@@ -65,6 +66,9 @@ async function startPlatform(options) {
   core.encryptionKey();
   assert(process.env.HOOKLAB_BOOTSTRAP_TOKEN && process.env.HOOKLAB_BOOTSTRAP_TOKEN.length >= 32, 'bootstrap_token_required');
   assert(process.env.HOOKLAB_METRICS_TOKEN && process.env.HOOKLAB_METRICS_TOKEN.length >= 32, 'metrics_token_required');
+  const hourlyLimitText = process.env.HOOKLAB_TENANT_HOURLY_EVENT_LIMIT || '0';
+  if (!/^(0|[1-9][0-9]{0,6})$/.test(hourlyLimitText)) throw new Error('Invalid HOOKLAB_TENANT_HOURLY_EVENT_LIMIT');
+  const hourlyLimit = Number(hourlyLimitText);
   const pool = new Pool({connectionString: process.env.DATABASE_URL, max: 12,
     connectionTimeoutMillis: 5000, idleTimeoutMillis: 30000});
   pool.on('error', error => console.error('HookLab PostgreSQL pool:', error));
@@ -338,10 +342,20 @@ async function startPlatform(options) {
     const fingerprint = crypto.createHash('sha256').update(mediaType + '\n' + eventType + '\n' + raw).digest('hex');
     const trace = core.traceId(req.headers.traceparent);
     const created = await transaction(async client => {
+      // All platform instances serialize new publications for this tenant in
+      // PostgreSQL. A hash collision only reduces concurrency; the count is
+      // still tenant-filtered. Acquire before checking idempotency so a retry
+      // remains a duplicate even when the quota has been reached.
+      if (hourlyLimit) await client.query('SELECT pg_advisory_xact_lock(90261861, hashtext($1))', [tenantId]);
       const existing = await client.query(`SELECT id,fingerprint FROM events WHERE tenant_id=$1 AND application_id=$2 AND idempotency_key=$3 FOR UPDATE`, [tenantId, appId, idempotencyKey]);
       if (existing.rowCount) {
         if (existing.rows[0].fingerprint !== fingerprint) throw failure('conflict');
         return {accepted: true, duplicate: true, eventId: existing.rows[0].id, deliveries: 0};
+      }
+      if (hourlyLimit) {
+        const recent = await client.query(`SELECT count(*)::int AS total FROM events
+          WHERE tenant_id=$1 AND created_at >= now()-interval '1 hour'`, [tenantId]);
+        if (recent.rows[0].total >= hourlyLimit) throw failure('quota_exceeded');
       }
       const eventId = crypto.randomUUID();
       const inserted = await client.query(`INSERT INTO events(id,tenant_id,application_id,event_type,idempotency_key,fingerprint,body,content_type,trace_id)

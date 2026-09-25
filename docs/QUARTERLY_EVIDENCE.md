@@ -46,4 +46,6 @@ node scripts/platform-showcase.mjs
 - 源码、连续提交、README、MIT 许可证、第三方声明、测试与 CI 均在公开仓库；[CHANGELOG.md](../CHANGELOG.md)与[九月范围说明](SEPTEMBER_SCOPE.md)区分旧基础和新增工作。
 - [PLATFORM.md](PLATFORM.md)给出完整 API 和运行步骤；[SECURITY.md](../SECURITY.md)列出威胁模型，README 明列两种部署模式及不能混用的存储边界。
 - 暂无可公开核实的外部用户、生产部署或长期线上 SLO 数据，因此不宣称已取得这些成效。评审若要求真实落地证据，应另外提供经用户授权、脱敏且可验证的使用记录。
-- PostgreSQL 模式尚缺跨实例全局配额/限流、数据库级 RLS、自动 TLS、SQLite 迁移和高可用部署；演示不能替代这些生产加固工作。具体限制以[平台文档](PLATFORM.md)为准。
+- PostgreSQL 模式有可选的跨实例小时事件额度，但仍缺通用请求/字节限流、数据库级 RLS、自动 TLS、SQLite 迁移和高可用部署；演示不能替代这些生产加固工作。具体限制以[平台文档](PLATFORM.md)为准。
+
+`0.3.0-rc.2` 另增加隔离 Compose 接收端测试：错误契约不入库，一条合成订单先获 503 再获 204，两次独立核对 HMAC、同一投递 ID、最终尝试记录和幂等重复抑制；随后将数据库归档恢复到临时库并检查加密密钥。该测试的 CI 原始日志是可复核证据，不是外部真实试点。操作与剩余拦截项见[运维手册](OPERATIONS.md)，MoonBit/Node.js 调用链见[核心职责](MOONBIT_CORE.md)。

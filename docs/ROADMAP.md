@@ -26,6 +26,8 @@ implied capability of the current release.
 - [x] Transactional idempotency and conditional work claiming
 - [x] Lease expiry, fencing, and worker crash recovery
 - [x] Compose trial deployment with isolated database backup/restore verification
+- [x] CI-only signed receiver, retry/duplicate conformance, backup manifest and restored-key verification
+- [x] Optional shared PostgreSQL hourly accepted-event cap with cross-instance test
 - [ ] General migration tooling, off-host backup automation and production recovery exercise
 
 ## 0.5 — Outbound webhook service
@@ -41,7 +43,7 @@ implied capability of the current release.
 - [x] Authenticated multi-tenant application-event control plane
 - [x] Role-based access and audit trail
 - [ ] Database-level row security and external identity integration
-- [ ] Global tenant quotas and cross-instance rate limiting
+- [ ] General cross-instance request/byte quotas and rate limiting (hourly accepted-event cap is implemented)
 - [ ] SQLite-to-PostgreSQL data migration and schema upgrade tooling
 - High-availability deployment guide
 - Compatibility and performance baselines

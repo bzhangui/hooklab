@@ -6,6 +6,25 @@ All notable changes are documented here. HookLab follows semantic versioning.
 
 No changes since the release candidate below.
 
+## 0.3.0-rc.2 — 2026-09-25
+
+Controlled-trial update; no claim of a real user pilot or production readiness.
+
+### Added
+
+- CI-only receiver validates a full containerized delivery: contract rejection,
+  HMAC signatures, 503-to-204 retry, stable delivery identity, attempt history,
+  and duplicate suppression.
+- Isolated backup restore now checks all expected tables and decrypts a restored
+  endpoint secret when present; a private manifest and offline checksum/key
+  inspection command support operator-managed off-host copies.
+- MoonBit platform callback tests and an explicit MoonBit/Node.js evidence map;
+  a controlled-pilot authorization card and recovery runbook document what is
+  and is not externally verified.
+- An optional PostgreSQL-serialized hourly accepted-event cap per tenant,
+  tested with concurrent publication through two instances; it does not
+  replace general request/byte rate limiting.
+
 ## 0.3.0-rc.1 — 2026-09-25
 
 Release candidate for local trial and evaluation, not a production-readiness claim.

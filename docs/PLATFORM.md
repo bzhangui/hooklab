@@ -56,6 +56,8 @@ curl -X POST http://127.0.0.1:8787/api/tenants/acme/applications/orders/events/o
 
 Worker 领取任务时先在同一数据库事务中记录 `in_flight` 尝试，完成后更新为 `delivered`、`scheduled` 或 `dead_lettered`。如果 Worker 崩溃并由另一个实例接管，旧记录标为 `interrupted`，新尝试另起一条。`interrupted` 只表示原 Worker 未留下终态，**不能证明请求一定已到达消费者**；也不能据此保证恰好一次交付。未结束与中断的尝试不计入耗时 p95/直方图，但中断数量出现在尝试结果指标和租户历史中。
 
+可选的跨实例租户事件额度：所有实例一致设置 `HOOKLAB_TENANT_HOURLY_EVENT_LIMIT=1000` 等正整数（最大七位）；默认 `0` 表示关闭。平台在 PostgreSQL 同一事务中按租户串行化新事件并统计最近一小时**已接受事件**。达到额度时新事件返回 429 `quota_exceeded`，不落事件、幂等键或交付；相同键与正文的重试仍返回 200，冲突正文仍返回 409。此机制只限制事件发布，不限制管理请求、字节数或已排队交付；统计查询随该租户最近一小时事件数增长，不能当作完整容量治理。
+
 ## 契约与 CloudEvents
 
 按应用和事件类型发布递增版本的契约。每次发布只激活最新版本；MoonBit 领域内核判定版本兼容性，试图新增必填字段、收窄类型/枚举或关闭原本允许的额外字段会返回 409。契约变更在应用行锁下串行化。`GET /api/tenants/:tenant/contracts` 可查看版本与 schema。
@@ -89,7 +91,7 @@ curl -X POST http://127.0.0.1:8787/api/tenants/acme/contracts \
 - 多个实例可连接同一 PostgreSQL。Worker 用 `FOR UPDATE SKIP LOCKED` 领取任务，续租并用 `worker_id` + `lease_token` 条件写回，租约过期可接管。网络发送已发生但写回失败时仍可能重复，无法保证 exactly once。
 - 管理、发布、指标令牌各自独立。发布令牌随机生成并仅存 SHA-256 摘要；端点签名密钥以 `HOOKLAB_ENCRYPTION_KEY` 用 AES-256-GCM 加密。备份数据库时也必须安全备份该密钥，丢失后旧交付无法签名。请为数据库连接配置 TLS、最小权限账户与可靠备份。
 - 端点只允许 HTTPS（测试时设置 `HOOKLAB_ALLOW_LOOPBACK_ENDPOINTS=1` 才允许回环 HTTP）。禁止 URL 用户名、密码、查询参数和片段；创建及每次发送都解析 DNS，拒绝私网/回环/链路本地等地址，并把连接固定到检查过的 IP。禁止重定向。此策略降低 SSRF 风险，但仍需网络出口 ACL、DNS/代理审计和允许的目标清单。
-- 默认回环绑定。跨主机服务必须通过受信任的 TLS 反向代理和防火墙发布，绝不可把纯 HTTP 的管理接口直接暴露公网。平台当前没有全局租户配额、跨实例限流、自动 TLS、外部身份提供方、数据库级 RLS、在线扩缩容迁移或消费者自助证明域名所有权。
+- 默认回环绑定。跨主机服务必须通过受信任的 TLS 反向代理和防火墙发布，绝不可把纯 HTTP 的管理接口直接暴露公网。可选的 PostgreSQL 共享小时事件额度不等于通用跨实例请求限流；平台仍没有字节/连接配额、自动 TLS、外部身份提供方、数据库级 RLS、在线扩缩容迁移或消费者自助证明域名所有权。
 - 当前 PostgreSQL 模式仅服务应用事件发布；原有第三方入站 Webhook 验签仍用 `serve-config`。两条运行路径不会自动共享事件或迁移数据。
 
 ## 观测、SLO、告警与维护测试
