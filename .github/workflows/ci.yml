@@ -91,6 +91,8 @@ jobs:
   deployment:
     runs-on: ubuntu-24.04
     timeout-minutes: 15
+    env:
+      COMPOSE_FILE: compose.yaml:compose.ci.yaml
     steps:
       - uses: actions/checkout@v5
       - name: Use Node.js 24

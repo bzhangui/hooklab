@@ -1,0 +1,18 @@
+# CI-only receiver shares the app network namespace so the existing
+# loopback-only test exception never enables arbitrary private targets.
+services:
+  app:
+    environment:
+      HOOKLAB_ALLOW_LOOPBACK_ENDPOINTS: "1"
+    ports:
+      - "127.0.0.1:8766:8766"
+
+  receiver:
+    image: node:24-bookworm-slim
+    network_mode: service:app
+    depends_on:
+      app:
+        condition: service_started
+    volumes:
+      - ./scripts/ci-receiver.mjs:/ci-receiver.mjs:ro
+    command: ["node", "/ci-receiver.mjs"]
