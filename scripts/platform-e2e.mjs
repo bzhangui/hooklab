@@ -5,6 +5,7 @@ import path from 'node:path';
 import {spawn} from 'node:child_process';
 import {stopChild} from './e2e-process.mjs';
 import pg from 'pg';
+import {importHistory} from './sqlite-transfer.mjs';
 
 const databaseUrl = process.env.TEST_DATABASE_URL;
 assert.ok(databaseUrl, 'TEST_DATABASE_URL is required for the PostgreSQL integration test');
@@ -206,6 +207,25 @@ try {
     {applicationId: 'ingress', provider: 'generic-hmac', secret: rotatedProviderSecret})).status, 200);
   assert.equal((await providerRequest(baseA, 'provider-2')).status, 202); // previous secret grace period
   assert.equal((await providerRequest(baseA, 'provider-3', providerBody, rotatedProviderSecret)).status, 202);
+  const maintenance = new pg.Client({connectionString: databaseUrl});
+  await maintenance.connect();
+  try {
+    await maintenance.query(`UPDATE provider_credentials SET previous_expires_at=now()-interval '1 second'
+      WHERE tenant_id=$1 AND application_id='ingress' AND provider='generic-hmac'`, [tenantA]);
+    assert.equal((await providerRequest(baseA, 'provider-expired')).status, 401);
+    const payload = {records: [{id: 'old-sqlite-event', source: 'ingress', provider: 'generic-hmac',
+      event_type: 'warehouse.updated', body: providerBody, received_at: Date.now() - 86400000}],
+    summary: [{state: 'delivered', total: 1}]};
+    const bundle = {format: 'hooklab-sqlite-history-v1', payload,
+      checksum: crypto.createHash('sha256').update(JSON.stringify(payload)).digest('hex')};
+    const transfer = {tenantId: tenantA, applicationId: 'ingress'};
+    assert.equal((await importHistory(maintenance, bundle, transfer)).newEvents, 1);
+    assert.equal((await importHistory(maintenance, bundle, {...transfer, apply: true})).newEvents, 1);
+    assert.equal((await importHistory(maintenance, bundle, {...transfer, apply: true})).existingEvents, 1);
+    const imported = await maintenance.query(`SELECT count(*)::int AS total FROM events
+      WHERE tenant_id=$1 AND application_id='ingress' AND idempotency_key LIKE 'history:%'`, [tenantA]);
+    assert.equal(imported.rows[0].total, 1);
+  } finally { await maintenance.end(); }
   assert.equal((await request(baseA, apiA + '/provider-credentials/ingress/generic-hmac', 'DELETE', ownerA)).status, 200);
   assert.equal((await providerRequest(baseA, 'provider-4', providerBody, rotatedProviderSecret)).status, 404);
   const updatedSlo = await request(baseA, apiA + '/slo', 'GET', ownerA);
