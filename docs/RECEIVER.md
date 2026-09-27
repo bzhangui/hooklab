@@ -2,6 +2,8 @@
 
 `sdk/node/receiver.cjs` 是可直接引用的零运行时依赖验签模块，不是已经发布到 npm 的包。它与 MoonBit 出站签名共享固定测试向量，CI 的 Compose 投递测试也用它核对真实收到的两次重试。平台向接收方提供 **at least once** 投递；验签成功不等于业务恰好执行一次。
 
+现在还提供 `examples/receiver-durable/server.cjs`：在 Node.js 24+ 内置 SQLite 中把 `(consumer_id, delivery_id)` 唯一键与示例库存更新放在**同一事务**，并保存事件/正文指纹；进程重启后同一投递不会重复更新库存，同一投递 ID 配上不同正文返回 409。测试覆盖伪造签名、无效正文、重启去重和新事件。它是可改造的本机业务事务模式，仍不代表已获真实接收方授权或可直接公开部署。
+
 ## 本机跑通
 
 `examples/gateway/outbound-config.json` 的示例端点是 `http://127.0.0.1:9090/events`。在第一个终端设置**同一个**本机演示密钥并运行接收端：
@@ -13,6 +15,8 @@ node examples/receiver-node/server.cjs
 ```
 
 第二个终端按 [出站服务指南](OUTBOUND.md) 设置 `HOOKLAB_SIGN_WAREHOUSE` 为同一密钥，并启动 `serve-config`，再使用该指南中的 `curl` 发布示例事件。接收端只监听回环地址，不记录正文或密钥；它的 `Set` 去重只用于本机演示，进程重启即丢失，达到 10,000 个 ID 后返回 503，**不能直接公开部署**。
+
+试用持久示例时，将第一个终端的启动命令改为 `node examples/receiver-durable/server.cjs`，并可设置私有 `HOOKLAB_RECEIVER_DB` 路径；它只接受 `warehouse.updated`，正文须为 `{"itemId":"part-1","stock":7}` 这类 JSON。示例数据库及 WAL 文件不可提交。切换真实业务时，替换库存写入逻辑，但保留验签、唯一键、业务写入同一事务和失败返回非 2xx 的顺序。若业务状态在远程系统、无法和去重表同事务提交，应改用本地 outbox，再异步完成外部副作用，不能承诺恰好一次。
 
 ## 在自己的 HTTP 服务中使用
 

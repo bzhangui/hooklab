@@ -76,11 +76,11 @@ existing retry / circuit / dead-letter / replay path
 - `pipeline` 保留轻量库使用场景的安全处理入口。
 - `report` 只接收处理结果，不能访问密钥。
 - `cmd/hooklab` 提供 JS/Node I/O、SQLite WAL 事务适配、发布与管理 API 及控制台，并把 PostgreSQL 模式接入 MoonBit 投递计划、签名和重试决策。
-- `platform` 提供独立的 PostgreSQL 多租户 HTTP/Worker 适配器、消费者门户、契约注册与观测接口。它不替换 SQLite 入站网关，也不自动迁移其数据。
+- `platform` 提供独立的 PostgreSQL 多租户 HTTP/Worker 适配器、消费者门户、契约注册、MoonBit 提供方验签回调与观测接口。它不替换 SQLite 入站网关，也不自动迁移其活动队列和配置。
 
 ## 生产扩展
 
-1. SQLite 适配器用唯一约束和事务原子提交幂等键、事件与投递。独立的 PostgreSQL 应用事件适配器在共享数据库中进行相同的原子写入，用 `SKIP LOCKED` 领取及 `worker_id`/`lease_token` fencing，支持多个进程竞争工作；数据库高可用不在应用内实现。
+1. SQLite 适配器用唯一约束和事务原子提交幂等键、事件与投递。PostgreSQL 适配器接收应用发布或通过 MoonBit 验签的第三方请求，在共享数据库中进行相同的原子写入，用 `SKIP LOCKED` 领取及 `worker_id`/`lease_token` fencing，支持多个进程竞争工作；数据库高可用不在应用内实现。
 2. Worker 先持久化 owner、lease token、expiry 和 version，再执行网络请求；完成时必须匹配全部 fencing 字段。
 3. 将 `RouteMatch.target` 映射到受信任配置，不要把不受信任 payload 直接用作 URL。
 4. 记录摘要、状态码和 trace ID，不记录密钥、认证头或未脱敏 payload。

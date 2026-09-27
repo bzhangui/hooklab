@@ -6,10 +6,20 @@ All notable changes are documented here. HookLab follows semantic versioning.
 
 ### Added
 
+- PostgreSQL v3 provider-ingress credentials and MoonBit signature verification
+  now route authenticated third-party callbacks through the same tenant event,
+  subscription, signing and worker pipeline; invalid requests have no writes.
+- Optional shared tenant hourly body-byte and pending-delivery caps, plus a
+  redacted event timeline and acceptance-to-final-delivery latency metric/SLO.
+- A local SQLite-backed receiver example keeps deduplication and a sample
+  business update in one transaction, with restart and conflict tests.
+- A private, checksummed SQLite terminal-history transfer supports preview and
+  confirmed PostgreSQL event import; active queue work and secrets are excluded.
+- An experimental machine-readable OpenAPI description for core platform routes.
 - Node.js receiver verifier with a MoonBit cross-language signature vector,
   tamper/stale/ambiguous-header tests, a loopback example and containerized
   delivery conformance checks. The example does not claim durable deduplication.
-- PostgreSQL v1-to-v2 additive retention index migration, gated for existing
+- PostgreSQL v1/v2-to-v3 additive migrations, gated for existing
   databases by an explicit post-backup upgrade flag; read-only schema inspection.
 - Preview-first, tenant-scoped, bounded retention batches for old terminal
   events and attempts. No live data was purged by this change.
@@ -19,8 +29,8 @@ All notable changes are documented here. HookLab follows semantic versioning.
 ### Remaining limits
 
 - No authorized external pilot, long-duration production load test, published
-  npm SDK, general export/import, off-host backup automation or SQLite data
-  migration. The latest tagged release remains `0.3.0-rc.2`.
+  npm SDK, live SQLite queue migration, general export/import or off-host
+  backup automation. The latest tagged release remains `0.3.0-rc.2`.
 
 ## 0.3.0-rc.2 — 2026-09-25
 

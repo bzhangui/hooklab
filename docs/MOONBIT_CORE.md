@@ -4,6 +4,7 @@ HookLab 的 PostgreSQL 控制面和网络/数据库 I/O 由 Node.js 适配；可
 
 | 平台行为 | MoonBit 决策位置 | Node.js 适配位置 | 核验入口 |
 |---|---|---|---|
+| 第三方入站签名与时间窗 | `hooklab/providers/verify.mbt`，由 `platform_verify_provider` 回调复用 | `platform/server.cjs` 收集未合并的签名头，验签后才做 PostgreSQL 写入 | MoonBit 回调测试、PostgreSQL 提供方 E2E |
 | 订阅匹配与投递计划 | `hooklab/outbound/outbound.mbt` 的 `plan_publication`，由 `cmd/hooklab/platform_common.mbt` 的 `platform_plan` 调用 | `platform/server.cjs` 读取租户订阅、事务落库 | `cmd/hooklab/platform_common_wbtest.mbt`、PostgreSQL E2E |
 | 事件契约、CloudEvents 与兼容判定 | `hooklab/contract/event_schema.mbt`、`platform_validate`、`schema_compatible_json` | HTTP 和数据库版本记录在 `platform/server.cjs` | MoonBit 契约单测、非法事件 422 且未入库测试 |
 | 出站签名 | `hooklab/outbound/outbound.mbt` 的 `sign_delivery` | `platform/worker.cjs` 组装 HTTP 请求 | 签名向量单测、容器接收端独立 HMAC 核对 |

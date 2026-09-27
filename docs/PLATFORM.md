@@ -17,7 +17,7 @@ export HOOKLAB_METRICS_TOKEN='<different-random-secret-at-least-32-characters>'
 moon run --target js cmd/hooklab -- serve-platform 8787
 ```
 
-上述值是占位符，不能用于正式环境。首次启动自动建立 PostgreSQL schema v2；启动时用 PostgreSQL advisory lock 串行化初始化或迁移。已有 v1 库必须在隔离恢复验证备份后，明确设置 `HOOKLAB_ALLOW_SCHEMA_UPGRADE=1` 才会做事务性加法升级，成功后移除此变量；见[升级与保留操作](RETENTION.md)。数据库只应由 HookLab 使用，旧程序会拒绝读取更高版本 schema。当前没有 SQLite → PostgreSQL 自动迁移工具。`GET /health` 检查进程和数据库连接。门户位于 `http://127.0.0.1:8787/`，默认只监听回环地址。
+上述值是占位符，不能用于正式环境。首次启动自动建立 PostgreSQL schema v3；启动时用 PostgreSQL advisory lock 串行化初始化或迁移。已有 v1/v2 库必须在隔离恢复验证备份后，明确设置 `HOOKLAB_ALLOW_SCHEMA_UPGRADE=1` 才会做事务性加法升级，成功后移除此变量；见[升级与保留操作](RETENTION.md)。数据库只应由 HookLab 使用，旧程序会拒绝读取更高版本 schema。旧 SQLite 的已结束事件可按[受控历史转移说明](MIGRATION.md)导入，但活动队列和密钥不会自动迁移。`GET /health` 检查进程和数据库连接。门户位于 `http://127.0.0.1:8787/`，默认只监听回环地址。
 
 ## 从租户到交付
 
@@ -52,13 +52,27 @@ curl -X POST http://127.0.0.1:8787/api/tenants/acme/applications/orders/events/o
   -H 'Content-Type: application/json' --data '{"orderId":42}'
 ```
 
+### 第三方 Webhook 接入同一交付链路
+
+先创建应用、端点与订阅，再用租户 Developer/Owner 令牌登记提供方密钥。密钥经 `HOOKLAB_ENCRYPTION_KEY` 加密保存，读取接口只返回应用、提供方和启用状态。再次提交同一组合会轮换密钥，上一把密钥仅继续接受 24 小时；删除凭据会立即拒绝后续入站请求。配置示例使用占位符，不能用于正式环境：
+
+```bash
+curl -X POST http://127.0.0.1:8787/api/tenants/acme/provider-credentials \
+  -H "Authorization: Bearer $OWNER_TOKEN" -H 'Content-Type: application/json' \
+  --data '{"applicationId":"orders","provider":"generic-hmac","secret":"replace-with-private-secret"}'
+```
+
+将提供方回调地址配置为 `POST /api/tenants/acme/applications/orders/providers/generic-hmac`。该入口**不使用发布 Bearer 令牌**，只接受匹配的提供方签名；通用 HMAC 必须携带 `X-Webhook-Timestamp`、`X-Webhook-Id` 和 `X-Webhook-Signature`，并在 300 秒窗口内。GitHub、Stripe、飞书使用各自的 [验签规则](PROVIDERS.md)；GitHub 本身不提供签名时间戳，因此主要依赖签名与提供方交付 ID 幂等。入站正文限 1 MiB UTF-8 JSON，验签成功后再执行契约、订阅计划与同一 PostgreSQL 事务写入；非法签名、契约失败和额度拒绝均不产生事件或交付。原提供方 ID 被哈希作为应用内幂等键，相同 ID/正文返回 200，ID 相同而正文改变返回 409。使用与应用发布相同的出站签名、Worker 和重试链路。
+
+`serve-config` 的旧路由转换与静态配置不会自动复制到平台；平台按应用、事件类型和订阅匹配。请在可信 TLS 代理、防火墙和允许的提供方地址范围内配置回调，不要把默认回环服务直接暴露公网。核心接口结构见 [OpenAPI 描述](openapi.json)。
+
 消费者收到原始 JSON 正文、`X-HookLab-Event-Id`、`X-HookLab-Delivery-Id`、`X-HookLab-Event-Type`、`X-HookLab-Key-Id`、`X-HookLab-Timestamp`、`X-HookLab-Signature` 和 `traceparent`。签名规范与 [OUTBOUND.md](OUTBOUND.md) 相同。重试会改变时间戳但保留事件/交付 ID。消费者应以交付 ID 去重。3xx 不跟随跳转；网络错误、408/425/429/5xx 按 MoonBit 重试策略处理，其他 4xx 进入死信。
 
 可使用[Node.js 接收方集成包](RECEIVER.md)验签与运行回环示例；业务去重必须在接收方自己的持久事务中完成。该示例不代表已有外部使用方。
 
 Worker 领取任务时先在同一数据库事务中记录 `in_flight` 尝试，完成后更新为 `delivered`、`scheduled` 或 `dead_lettered`。如果 Worker 崩溃并由另一个实例接管，旧记录标为 `interrupted`，新尝试另起一条。`interrupted` 只表示原 Worker 未留下终态，**不能证明请求一定已到达消费者**；也不能据此保证恰好一次交付。未结束与中断的尝试不计入耗时 p95/直方图，但中断数量出现在尝试结果指标和租户历史中。
 
-可选的跨实例租户事件额度：所有实例一致设置 `HOOKLAB_TENANT_HOURLY_EVENT_LIMIT=1000` 等正整数（最大七位）；默认 `0` 表示关闭。平台在 PostgreSQL 同一事务中按租户串行化新事件并统计最近一小时**已接受事件**。达到额度时新事件返回 429 `quota_exceeded`，不落事件、幂等键或交付；相同键与正文的重试仍返回 200，冲突正文仍返回 409。此机制只限制事件发布，不限制管理请求、字节数或已排队交付；统计查询随该租户最近一小时事件数增长，不能当作完整容量治理。
+可选的跨实例租户额度：所有实例一致设置 `HOOKLAB_TENANT_HOURLY_EVENT_LIMIT=1000`、`HOOKLAB_TENANT_HOURLY_BYTE_LIMIT=10485760`、`HOOKLAB_TENANT_PENDING_LIMIT=10000`；均默认 `0`（关闭）。三者分别限制最近一小时已接受事件数、原始正文总字节和当前 `pending/scheduled/in_flight` 交付数。新事件在 PostgreSQL 同一租户事务锁下检查额度；达到额度时返回 429 `quota_exceeded`，不落事件、幂等键或交付；相同键与正文的重试仍返回 200，冲突正文仍返回 409。小时字节统计随历史事件数增长，需配合保留期与监控。它们**不限制管理请求、连接数、单租户端点数或瞬时 HTTP 请求率**，不能替代代理层限流和容量治理。
 
 ## 契约与 CloudEvents
 
@@ -83,7 +97,8 @@ curl -X POST http://127.0.0.1:8787/api/tenants/acme/contracts \
 | 轮换端点密钥 | `POST /api/tenants/:id/endpoints/:endpoint/rotate-secret` |
 | 软停用 / 启用资源 | `PATCH /api/tenants/:id/applications|endpoints|subscriptions/:resource`，正文 `{"enabled":false}` |
 | 目录与契约 | `GET /api/tenants/:id/catalog`、`GET /api/tenants/:id/contracts` |
-| 事件、交付、尝试与审计 | `GET /api/tenants/:id/events|deliveries|audit`、`GET /api/tenants/:id/deliveries/:delivery/attempts` |
+| 提供方凭据 | `GET/POST /api/tenants/:id/provider-credentials`、`DELETE /api/tenants/:id/provider-credentials/:app/:provider`；列表不回显密钥 |
+| 事件、交付、尝试与审计 | `GET /api/tenants/:id/events|deliveries|audit`、`GET /api/tenants/:id/deliveries/:delivery/attempts`、`GET /api/tenants/:id/events/:event/timeline` |
 | 死信人工重试 | `POST /api/tenants/:id/deliveries/:delivery/retry` |
 
 轮换后的新密钥只在响应中显示一次。已入队交付持有加密的旧密钥快照；消费者需要在过渡期继续接受旧 `keyId`，直到旧交付完成。门户令牌只在当前页面内存中，刷新或断开后清除；在可信设备上使用。
@@ -93,12 +108,12 @@ curl -X POST http://127.0.0.1:8787/api/tenants/acme/contracts \
 - 多个实例可连接同一 PostgreSQL。Worker 用 `FOR UPDATE SKIP LOCKED` 领取任务，续租并用 `worker_id` + `lease_token` 条件写回，租约过期可接管。网络发送已发生但写回失败时仍可能重复，无法保证 exactly once。
 - 管理、发布、指标令牌各自独立。发布令牌随机生成并仅存 SHA-256 摘要；端点签名密钥以 `HOOKLAB_ENCRYPTION_KEY` 用 AES-256-GCM 加密。备份数据库时也必须安全备份该密钥，丢失后旧交付无法签名。请为数据库连接配置 TLS、最小权限账户与可靠备份。
 - 端点只允许 HTTPS（测试时设置 `HOOKLAB_ALLOW_LOOPBACK_ENDPOINTS=1` 才允许回环 HTTP）。禁止 URL 用户名、密码、查询参数和片段；创建及每次发送都解析 DNS，拒绝私网/回环/链路本地等地址，并把连接固定到检查过的 IP。禁止重定向。此策略降低 SSRF 风险，但仍需网络出口 ACL、DNS/代理审计和允许的目标清单。
-- 默认回环绑定。跨主机服务必须通过受信任的 TLS 反向代理和防火墙发布，绝不可把纯 HTTP 的管理接口直接暴露公网。可选的 PostgreSQL 共享小时事件额度不等于通用跨实例请求限流；平台仍没有字节/连接配额、自动 TLS、外部身份提供方、数据库级 RLS、在线扩缩容迁移或消费者自助证明域名所有权。
-- 当前 PostgreSQL 模式仅服务应用事件发布；原有第三方入站 Webhook 验签仍用 `serve-config`。两条运行路径不会自动共享事件或迁移数据。
+- 默认回环绑定。跨主机服务必须通过受信任的 TLS 反向代理和防火墙发布，绝不可把纯 HTTP 的管理接口直接暴露公网。可选的 PostgreSQL 额度不等于通用跨实例请求限流；平台仍没有连接数/瞬时请求配额、自动 TLS、外部身份提供方、数据库级 RLS、在线扩缩容迁移或消费者自助证明域名所有权。
+- PostgreSQL 模式现可接收第三方入站，但 `serve-config` 的旧 SQLite 数据、路由和密钥不自动共享。历史事件转移只在停止写入、全部交付终态且显式确认后进行；活动交付仍需在原网关完成或人工处理。
 
 ## 观测、SLO、告警与维护测试
 
-`GET /metrics` 用独立的 `HOOKLAB_METRICS_TOKEN` 访问，输出无租户/URL 标签的 Prometheus 指标：状态数、24 小时尝试结果、尝试耗时固定桶、最老积压秒数、打开的告警数及本实例活动 Worker 数。`GET /api/tenants/:id/slo` 输出 24 小时投递成功率和 p95 尝试耗时。成功率分母包括窗口内创建、仍在排队的交付；无样本返回 `null`。内置告警检查最近一小时死信及超过五分钟的积压，结果见租户告警 API。生产通知可用 [Prometheus 告警规则示例](../ops/prometheus-rules.yml) 接入 Alertmanager；HookLab 自身不发送邮件或短信。
+`GET /metrics` 用独立的 `HOOKLAB_METRICS_TOKEN` 访问，输出无租户/URL 标签的 Prometheus 指标：状态数、24 小时尝试结果、尝试耗时及接收到最终交付耗时固定桶、最老积压秒数、打开的告警数及本实例活动 Worker 数。`GET /api/tenants/:id/slo` 输出 24 小时投递成功率、p95 单次尝试耗时和 p95 最终交付耗时；未交付样本不参与最终交付 p95，故应与成功率一起解读。成功率分母包括窗口内创建、仍在排队的交付；无样本返回 `null`。`GET /api/tenants/:id/events/:event/timeline` 和门户可查看该事件的脱敏元数据、交付状态及最多 500 次尝试，不回显正文或密钥。内置告警检查最近一小时死信及超过五分钟的积压，结果见租户告警 API。生产通知可用 [Prometheus 告警规则示例](../ops/prometheus-rules.yml) 接入 Alertmanager；HookLab 自身不发送邮件或短信。
 
 ```bash
 moon fmt --check
@@ -109,6 +124,7 @@ npm ci
 npm run test:platform
 # 使用专用 hooklab_test 数据库运行真正的多实例测试：
 TEST_DATABASE_URL='postgresql://postgres:postgres@127.0.0.1:5432/hooklab_test' node scripts/platform-e2e.mjs
+TEST_DATABASE_URL='postgresql://postgres:postgres@127.0.0.1:5432/hooklab_test' node scripts/platform-quota-e2e.mjs
 TEST_DATABASE_URL='postgresql://postgres:postgres@127.0.0.1:5432/hooklab_test' node scripts/platform-showcase.mjs
 ```
 

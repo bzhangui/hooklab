@@ -1,6 +1,6 @@
 # HookLab
 
-当前版本：`0.3.0-rc.2`（受控试用候选版，非生产就绪承诺）。
+最近标记版本：`0.3.0-rc.2`；当前开发提交包含尚未发布的后续改进（非生产就绪承诺）。
 
 [![CI](https://github.com/bzhangui/hooklab/actions/workflows/ci.yml/badge.svg)](https://github.com/bzhangui/hooklab/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
@@ -15,11 +15,11 @@ HookLab 是一个以 MoonBit 领域内核为基础的自托管 Webhook 安全与
 | 模式 | 适用情况 | 存储与边界 |
 |---|---|---|
 | `serve-config` | 第三方 Webhook 验签、路由和单机交付 | 本机 SQLite，静态受信任配置；现有示例可直接运行 |
-| `serve-platform` | 应用事件发布、消费者管理和多实例交付 | 共享 PostgreSQL，多租户令牌/角色、契约、CloudEvents、SLO 与告警 |
+| `serve-platform` | 应用事件发布、第三方 Webhook 验签接入、消费者管理和多实例交付 | 共享 PostgreSQL，多租户令牌/角色、契约、CloudEvents、SLO 与告警 |
 
-两种模式独立部署，不会自动共享或迁移历史数据。新模式的运行命令、API、安全边界和维护方法见 [PostgreSQL 平台使用说明](docs/PLATFORM.md)。
+两种模式仍独立部署；`serve-platform` 现在可在同一 PostgreSQL 事件链路接入第三方提供方，但不会自动接管旧 SQLite 数据。受控的已结束历史事件导出/导入见[转移说明](docs/MIGRATION.md)，不迁移活动队列和密钥。运行命令、API、安全边界见[平台使用说明](docs/PLATFORM.md)，核心接口另有[机器可读描述](docs/openapi.json)。
 
-PostgreSQL 模式可选用共享数据库的每租户小时事件额度（`HOOKLAB_TENANT_HOURLY_EVENT_LIMIT`）；默认关闭，且不等于通用请求或字节限流。生产部署限制见 [SECURITY.md](SECURITY.md)。
+PostgreSQL 模式可选共享数据库的每租户小时事件、小时正文总字节、待处理交付额度；默认关闭。它们不等于通用请求/连接限流，公网前仍需可信代理和网络边界，见 [SECURITY.md](SECURITY.md)。
 
 ## 本机一键试用与备份验证
 
@@ -31,7 +31,7 @@ PostgreSQL 模式可选用共享数据库的每租户小时事件额度（`HOOKL
 
 CI 另在独立容器中核对签名投递、503→204 重试、幂等和备份恢复；[MoonBit 核心职责](docs/MOONBIT_CORE.md)说明各层真实实现位置。
 
-接收系统可使用[Node.js 验签模块与本机示例](docs/RECEIVER.md)核对原始正文、时间窗和签名，并按投递 ID 做持久事务去重。该模块尚未发布到 npm；示例接收端只适合回环测试。PostgreSQL 模式另提供[受控 v1→v2 升级与事件保留工具](docs/RETENTION.md)：升级旧库前要验证备份，清理默认只预览，执行时必须显式确认租户。
+接收系统可使用[Node.js 验签模块和两个接收端示例](docs/RECEIVER.md)核对原始正文、时间窗和签名；其中 SQLite 示例把去重键与业务状态写入同一持久事务，并测试重启后的重复投递。模块尚未发布到 npm，示例只监听回环。PostgreSQL 模式另提供[受控 v1/v2→v3 升级与事件保留工具](docs/RETENTION.md)：升级旧库前要验证备份，清理默认只预览，执行时必须显式确认租户。
 
 ## 运行事件交付网关
 
@@ -120,8 +120,10 @@ moon run --target js cmd/hooklab -- replay http://127.0.0.1:8787/webhook @exampl
 | 管理界面 | 脱敏事件 API、投递状态 API、本地 Web 控制台 |
 | 多租户控制面 | PostgreSQL 租户、应用、端点、订阅，Owner/Developer/Viewer 角色、审计、消费者门户和一次性密钥轮换 |
 | 分布式交付 | PostgreSQL 事务入队、跨实例任务竞争领取、续租、fencing、持久化尝试审计与死信恢复；至少一次交付 |
+| 第三方入站闭环 | MoonBit 验签 GitHub、Stripe、飞书和通用 HMAC，请求通过后才在 PostgreSQL 原子保存事件和订阅交付 |
 | 事件契约 | 版本化 JSON Schema 子集、非破坏性变更检查、CloudEvents 1.0 structured JSON 接入 |
-| 运行观测 | Prometheus 指标、24 小时 SLO、p95 尝试耗时、死信与积压告警 |
+| 运行观测 | Prometheus 指标、脱敏事件时间线、24 小时 SLO、p95 尝试及最终交付耗时、死信与积压告警 |
+| 数据转移 | SQLite 已结束历史事件的私有导出、预览与显式确认导入；不迁移活动队列或密钥 |
 | CLI | sign、verify/inspect、report、route-test、contract-check、config-check、retry-plan、replay、serve、serve-config、serve-platform |
 
 ## 设计边界
@@ -131,9 +133,9 @@ moon run --target js cmd/hooklab -- replay http://127.0.0.1:8787/webhook @exampl
 - 密钥不会写入 fixture、报告或日志；诊断结果只保存脱敏内容。
 - 核心库提供确定性内存语义。`serve-config` 使用 SQLite WAL；`serve-platform` 使用共享 PostgreSQL，可以运行多个投递实例，但数据库本身的高可用由部署方保障。
 - CLI 的 replay 是显式调试操作，不会绕过目标服务认证；它不会转发原始提供方签名，目标端应使用隔离的测试入口。
-- `serve-config` 的投递领取与幂等由 SQLite 协调；其限流、可选熔断和耗时指标仅在单个进程内生效。`serve-platform` 的领取与幂等由 PostgreSQL 协调，但全局租户配额仍需额外实现。
+- `serve-config` 的投递领取与幂等由 SQLite 协调；其限流、可选熔断和耗时指标仅在单个进程内生效。`serve-platform` 的领取、幂等及可选租户事件/正文总字节/积压额度由 PostgreSQL 协调。
 - SQLite 模式的出站端点仍是受信任的启动配置；PostgreSQL 模式允许租户管理端点，发送时重新解析并固定公共 IP、拒绝私网和重定向。网络出口 ACL 仍是必要的第二道防线。
-- PostgreSQL 模式没有自动 TLS、跨实例全局限流、租户资源配额或数据库级 RLS；只能通过受信任的 TLS 代理和网络边界对外服务。交付是至少一次，消费者必须自行去重。
+- PostgreSQL 模式仍没有自动 TLS、通用请求/连接限流、数据库级 RLS 或完整资源配额；只能通过受信任的 TLS 代理和网络边界对外服务。交付是至少一次，消费者必须自行去重。
 - 当前按 UTF-8 文本处理请求体。任意二进制负载应在接入层保留原始字节后扩展 `WebhookRequest`。
 
 运行网关见 [docs/GATEWAY.md](docs/GATEWAY.md)，PostgreSQL 平台见 [docs/PLATFORM.md](docs/PLATFORM.md)，出站发布与验签见 [docs/OUTBOUND.md](docs/OUTBOUND.md)，声明式配置见 [docs/CONFIGURATION.md](docs/CONFIGURATION.md)，规则化转换见 [docs/TRANSFORMS.md](docs/TRANSFORMS.md)，契约验证见 [docs/CONTRACTS.md](docs/CONTRACTS.md)，架构与扩展点见 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)，提供方协议见 [docs/PROVIDERS.md](docs/PROVIDERS.md)，威胁模型见 [SECURITY.md](SECURITY.md)，性能基线见 [BENCHMARK.md](BENCHMARK.md)，后续路线见 [docs/ROADMAP.md](docs/ROADMAP.md)，九月新增范围见 [docs/SEPTEMBER_SCOPE.md](docs/SEPTEMBER_SCOPE.md)。

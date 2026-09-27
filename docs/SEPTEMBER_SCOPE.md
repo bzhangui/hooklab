@@ -47,7 +47,11 @@ These commits extend the accepted project rather than replacing its subject or
 repository. A subsequent increment adds a separate PostgreSQL application-event
 runtime with RBAC tenant control, a consumer portal, contract versions,
 CloudEvents structured JSON, multi-worker claims, SLO metrics and alerts. The
-existing SQLite provider-ingress mode remains available and independent.
+existing SQLite provider-ingress mode remains available and independent. Later
+maintenance also adds verified provider ingress to the PostgreSQL tenant
+pipeline, a durable local consumer example, redacted timelines, bounded tenant
+event/byte/backlog quotas, and an opt-in terminal-history transfer. It does not
+silently merge old SQLite configuration or work in progress.
 
 ## Acceptance evidence
 
@@ -72,9 +76,9 @@ private or closed-source code was used.
 ## Explicit non-goals for this release
 
 The current release does not claim distributed exactly-once delivery,
-automatic TLS termination, database-level tenant RLS, global tenant quotas,
-cross-instance rate limiting, SQLite data migration, or PostgreSQL database
-high availability. The platform control plane needs a trusted TLS proxy and
-network isolation before external exposure. SQLite transactions and leases
-cover the documented single-host deployment; the separate PostgreSQL runtime
-adds multi-process application-event delivery without changing SQLite ingress.
+automatic TLS termination, database-level tenant RLS, general request-rate or
+connection quotas, live SQLite queue migration, or PostgreSQL database high
+availability. The platform control plane needs a trusted TLS proxy and network
+isolation before external exposure. SQLite transactions and leases cover the
+documented single-host deployment; the PostgreSQL runtime supports both
+application events and separately configured provider ingress.

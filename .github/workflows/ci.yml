@@ -77,6 +77,8 @@ jobs:
         run: node scripts/gateway-lease-e2e.mjs
       - name: Platform unit tests
         run: npm run test:platform
+      - name: Parse machine-readable API description
+        run: node -e "JSON.parse(require('node:fs').readFileSync('docs/openapi.json','utf8'))"
       - name: PostgreSQL multi-worker E2E
         timeout-minutes: 3
         env:

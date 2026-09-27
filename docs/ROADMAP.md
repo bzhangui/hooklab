@@ -18,6 +18,7 @@ implied capability of the current release.
 - [x] Per-target concurrency and rate limits
 - [x] Circuit breaking and delivery latency histograms
 - [x] Preview-first PostgreSQL tenant event retention batches
+- [x] Controlled SQLite terminal-event history export and preview-first PostgreSQL import
 - [ ] General export/import and SQLite retention controls
 
 ## 0.4 — Transactional adapters
@@ -29,6 +30,7 @@ implied capability of the current release.
 - [x] Compose trial deployment with isolated database backup/restore verification
 - [x] CI-only signed receiver, retry/duplicate conformance, backup manifest and restored-key verification
 - [x] Optional shared PostgreSQL hourly accepted-event cap with cross-instance test
+- [x] PostgreSQL provider ingress verified by MoonBit with atomic event and subscription persistence
 - [ ] General migration tooling, off-host backup automation and production recovery exercise
 
 ## 0.5 — Outbound webhook service
@@ -38,16 +40,19 @@ implied capability of the current release.
 - [x] Tenant-scoped consumer management and authenticated RBAC control plane
 - [x] Consumer portal for delivery history and secret rotation
 - [x] Node.js receiver verifier, loopback example and MoonBit signature conformance vector
-- [ ] Other-language SDKs and a durable consumer sample
+- [x] Durable local Node.js consumer sample with transactional deduplication and restart test
+- [ ] Other-language SDKs and published package
 
 ## 1.0 — Production hardening
 
 - [x] Authenticated multi-tenant application-event control plane
 - [x] Role-based access and audit trail
 - [ ] Database-level row security and external identity integration
-- [ ] General cross-instance request/byte quotas and rate limiting (hourly accepted-event cap is implemented)
-- [x] Gated PostgreSQL v1-to-v2 additive schema migration and tenant-scoped retention batches
-- [ ] SQLite-to-PostgreSQL data migration, export/import and general schema upgrade tooling
+- [x] Optional cross-instance hourly accepted-body byte and pending-delivery caps
+- [ ] General cross-instance request/connection rate limiting and complete resource quotas
+- [x] Gated PostgreSQL v1/v2-to-v3 additive schema migration and tenant-scoped retention batches
+- [ ] Live SQLite-to-PostgreSQL queue/configuration migration and general schema upgrade tooling
+- [x] Redacted tenant event timeline and acceptance-to-final-delivery latency metrics
 - High-availability deployment guide
 - Compatibility and performance baselines
 - Stable API and upgrade policy
