@@ -149,6 +149,70 @@ try {
   assert.equal(metricsResponse.status, 200);
   assert.match(await metricsResponse.text(), /hooklab_deliveries\{state="delivered"\}/);
 
+  const ingressApp = await request(baseA, apiA + '/applications', 'POST', ownerA, {id: 'ingress'});
+  assert.equal(ingressApp.status, 201);
+  assert.equal((await request(baseA, apiA + '/subscriptions', 'POST', ownerA,
+    {id: 'sub-ingress', applicationId: 'ingress', endpointId: 'consumer', eventTypes: ['warehouse.updated']})).status, 201);
+  const providerSecret = 'generic-provider-secret-for-e2e';
+  assert.equal((await request(baseA, apiA + '/provider-credentials', 'POST', viewer.data.token,
+    {applicationId: 'ingress', provider: 'generic-hmac', secret: providerSecret})).status, 401);
+  assert.equal((await request(baseA, apiA + '/provider-credentials', 'POST', ownerA,
+    {applicationId: 'ingress', provider: 'generic-hmac', secret: providerSecret})).status, 200);
+  const credentialList = await request(baseB, apiA + '/provider-credentials', 'GET', ownerA);
+  assert.equal(credentialList.status, 200);
+  assert.equal(JSON.stringify(credentialList.data).includes(providerSecret), false);
+  const providerRoute = apiA + '/applications/ingress/providers/generic-hmac';
+  const providerBody = JSON.stringify({itemId: 'part-1', stock: 7});
+  assert.equal((await request(baseA, apiA + '/contracts', 'POST', ownerA,
+    {applicationId: 'ingress', eventType: 'warehouse.updated', version: 1, requireCloudEvents: false,
+      schema: {type: 'object', required: ['itemId','stock'], properties: {
+        itemId: {type: 'string'}, stock: {type: 'integer'}}}})).status, 201);
+  const providerRequest = (base, id, body = providerBody, secret = providerSecret, signature = '') => {
+    const timestamp = String(Math.floor(Date.now() / 1000));
+    return request(base, providerRoute, 'POST', '', body, {
+      'x-webhook-id': id, 'x-webhook-event': 'warehouse.updated', 'x-webhook-timestamp': timestamp,
+      'x-webhook-signature': signature || 'sha256=' + crypto.createHmac('sha256', secret)
+        .update(timestamp + '.' + body).digest('hex'),
+    });
+  };
+  const eventsBeforeInvalid = (await request(baseA, apiA + '/events', 'GET', ownerA)).data.length;
+  assert.equal((await providerRequest(baseA, 'provider-1', providerBody, providerSecret,
+    'sha256=' + '0'.repeat(64))).status, 401);
+  assert.equal((await providerRequest(baseA, 'provider-invalid', JSON.stringify({itemId: 'part-1'}))).status, 422);
+  assert.equal((await request(baseA, apiA + '/events', 'GET', ownerA)).data.length, eventsBeforeInvalid);
+  const providerAccepted = await providerRequest(baseA, 'provider-1');
+  assert.equal(providerAccepted.status, 202);
+  assert.equal(providerAccepted.data.deliveries, 1);
+  assert.equal((await providerRequest(baseB, 'provider-1')).status, 200);
+  assert.equal((await providerRequest(baseB, 'provider-1', JSON.stringify({itemId: 'part-1', stock: 8}))).status, 409);
+  await until(async () => (await request(baseA, apiA + '/deliveries', 'GET', ownerA)).data
+    .some(row => row.event_id === providerAccepted.data.eventId && row.state === 'delivered'));
+  const timeline = await request(baseB, apiA + '/events/' + providerAccepted.data.eventId + '/timeline', 'GET', ownerA);
+  assert.equal(timeline.status, 200);
+  assert.equal(timeline.data.event.source, 'provider');
+  assert.equal(timeline.data.event.provider, 'generic-hmac');
+  assert.equal(timeline.data.deliveries[0].state, 'delivered');
+  assert.equal(timeline.data.attempts[0].outcome, 'delivered');
+  assert.equal(JSON.stringify(timeline.data).includes(providerBody), false);
+  const providerDelivery = deliveries.find(row => row.eventId === providerAccepted.data.eventId);
+  assert.ok(providerDelivery);
+  assert.equal(providerDelivery.body, providerBody);
+  assert.equal(providerDelivery.signature, 'v1=' + crypto.createHmac('sha256', endpoint.data.signingSecret)
+    .update('v1\n' + providerDelivery.timestamp + '\n' + providerDelivery.deliveryId + '\n' +
+      providerDelivery.eventId + '\n' + providerDelivery.eventType + '\n' + providerDelivery.body).digest('hex'));
+  assert.equal((await request(baseB, apiB + '/events/' + providerAccepted.data.eventId + '/timeline', 'GET', ownerB)).status, 404);
+  const rotatedProviderSecret = 'new-provider-secret-for-e2e';
+  assert.equal((await request(baseB, apiA + '/provider-credentials', 'POST', ownerA,
+    {applicationId: 'ingress', provider: 'generic-hmac', secret: rotatedProviderSecret})).status, 200);
+  assert.equal((await providerRequest(baseA, 'provider-2')).status, 202); // previous secret grace period
+  assert.equal((await providerRequest(baseA, 'provider-3', providerBody, rotatedProviderSecret)).status, 202);
+  assert.equal((await request(baseA, apiA + '/provider-credentials/ingress/generic-hmac', 'DELETE', ownerA)).status, 200);
+  assert.equal((await providerRequest(baseA, 'provider-4', providerBody, rotatedProviderSecret)).status, 404);
+  const updatedSlo = await request(baseA, apiA + '/slo', 'GET', ownerA);
+  assert.ok(updatedSlo.data.p95FinalDeliveryLatencyMs >= 0);
+  const updatedMetrics = await fetch(baseA + '/metrics', {headers: {authorization: 'Bearer ' + metricsToken}});
+  assert.match(await updatedMetrics.text(), /hooklab_delivery_total_latency_ms_count/);
+
   slowGood = true;
   const burst = await Promise.all(Array.from({length: 12}, (_, index) => request(baseA, publishRoute, 'POST',
     application.data.publishToken, {...envelope, id: 'burst-' + index, data: {orderId: 100 + index}},

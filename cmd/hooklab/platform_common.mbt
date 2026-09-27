@@ -110,6 +110,59 @@ fn platform_validate(
 }
 
 ///|
+/// Reuse the MoonBit provider verifier before any PostgreSQL side effect.
+/// The adapter passes the original UTF-8 body and unmerged raw HTTP headers.
+fn platform_verify_provider(
+  provider_name : String,
+  secrets_json : String,
+  headers_json : String,
+  body : String,
+  received_at : Int64,
+) -> String {
+  guard provider_from_string(provider_name) is Some(provider) else {
+    return "{\"accepted\":false,\"code\":\"unsupported_provider\"}"
+  }
+  let parsed = try @json.parse(secrets_json) catch {
+    _ => return "{\"accepted\":false,\"code\":\"invalid_credentials\"}"
+  } noraise {
+    value => value
+  }
+  guard parsed is Array(items) else {
+    return "{\"accepted\":false,\"code\":\"invalid_credentials\"}"
+  }
+  let secrets : Array[String] = []
+  for item in items {
+    match item {
+      String(value) => secrets.push(value)
+      _ => return "{\"accepted\":false,\"code\":\"invalid_credentials\"}"
+    }
+  }
+  let request : @core.WebhookRequest = {
+    provider,
+    headers: headers_from_json(headers_json),
+    body,
+    received_at,
+  }
+  match
+    @providers.verify_with_secrets(request, secrets, policy={
+      tolerance_seconds: 300L,
+      reject_future_seconds: 30L,
+      require_delivery_id: true,
+    }) {
+    @core.Verified(event) =>
+      "{\"accepted\":true,\"eventType\":" +
+      gateway_json_string(event.event_type) +
+      ",\"deliveryId\":" +
+      gateway_json_string(event.delivery_id.unwrap_or("")) +
+      "}"
+    @core.Rejected(failure) =>
+      "{\"accepted\":false,\"code\":" +
+      gateway_json_string(@core.failure_code_name(failure.code)) +
+      "}"
+  }
+}
+
+///|
 fn serve_platform(args : Array[String]) -> Unit {
   let port = if args.length() > 1 {
     try @string.parse_int(args[1]) catch {
@@ -136,5 +189,6 @@ fn serve_platform(args : Array[String]) -> Unit {
     gateway_decision_json,
     platform_validate,
     @contract.schema_compatible_json,
+    platform_verify_provider,
   )
 }

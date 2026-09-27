@@ -63,6 +63,22 @@ function validId(value) { return typeof value === 'string' && core.idPattern.tes
 function jsonValue(value) { return value && typeof value === 'object' && !Array.isArray(value); }
 function safeError(error) { return {error: error.code || 'internal_error', ...(error.details ? {details: error.details} : {})}; }
 function tokenHashFromHeader(req) { const token = bearer(req); return token ? core.hashToken(token) : ''; }
+const providerNames = new Set(['github', 'stripe', 'feishu', 'generic-hmac']);
+const signedHeaderNames = new Set(['content-type', 'x-hub-signature-256', 'x-github-delivery', 'x-github-event',
+  'stripe-signature', 'x-hooklab-delivery-id', 'x-lark-signature', 'x-lark-request-timestamp',
+  'x-lark-request-nonce', 'x-lark-event-type', 'x-webhook-signature', 'x-webhook-timestamp',
+  'x-webhook-id', 'x-webhook-event']);
+function providerHeaders(req) {
+  const headers = [], seen = new Set();
+  for (let index = 0; index < req.rawHeaders.length; index += 2) {
+    const name = req.rawHeaders[index].toLowerCase();
+    if (!signedHeaderNames.has(name)) continue;
+    if (seen.has(name)) throw failure('invalid_body');
+    seen.add(name);
+    headers.push({name, value: req.rawHeaders[index + 1]});
+  }
+  return JSON.stringify(headers);
+}
 async function startPlatform(options) {
   core.encryptionKey();
   assert(process.env.HOOKLAB_BOOTSTRAP_TOKEN && process.env.HOOKLAB_BOOTSTRAP_TOKEN.length >= 32, 'bootstrap_token_required');
@@ -70,6 +86,12 @@ async function startPlatform(options) {
   const hourlyLimitText = process.env.HOOKLAB_TENANT_HOURLY_EVENT_LIMIT || '0';
   if (!/^(0|[1-9][0-9]{0,6})$/.test(hourlyLimitText)) throw new Error('Invalid HOOKLAB_TENANT_HOURLY_EVENT_LIMIT');
   const hourlyLimit = Number(hourlyLimitText);
+  const hourlyByteText = process.env.HOOKLAB_TENANT_HOURLY_BYTE_LIMIT || '0';
+  if (!/^(0|[1-9][0-9]{0,9})$/.test(hourlyByteText)) throw new Error('Invalid HOOKLAB_TENANT_HOURLY_BYTE_LIMIT');
+  const hourlyByteLimit = Number(hourlyByteText);
+  const pendingLimitText = process.env.HOOKLAB_TENANT_PENDING_LIMIT || '0';
+  if (!/^(0|[1-9][0-9]{0,6})$/.test(pendingLimitText)) throw new Error('Invalid HOOKLAB_TENANT_PENDING_LIMIT');
+  const pendingLimit = Number(pendingLimitText);
   const pool = new Pool({connectionString: process.env.DATABASE_URL, max: 12,
     connectionTimeoutMillis: 5000, idleTimeoutMillis: 30000});
   pool.on('error', error => console.error('HookLab PostgreSQL pool:', error));
@@ -247,9 +269,57 @@ async function startPlatform(options) {
       });
       return send(res, 201, {applicationId: body.applicationId, eventType: body.eventType, version: body.version});
     }
-    if (method === 'GET' && resource === 'events' && segments.length === 1) {
-      const rows = await query(`SELECT id,application_id,event_type,trace_id,created_at FROM events WHERE tenant_id=$1 ORDER BY created_at DESC,id DESC LIMIT 100`, [tenantId]);
+    if (method === 'GET' && resource === 'provider-credentials' && segments.length === 1) {
+      const rows = await query(`SELECT application_id,provider,enabled,updated_at FROM provider_credentials
+        WHERE tenant_id=$1 ORDER BY application_id,provider`, [tenantId]);
       return send(res, 200, rows.rows);
+    }
+    if (method === 'POST' && resource === 'provider-credentials' && segments.length === 1) {
+      const body = await jsonBody(req);
+      assert(validId(body.applicationId) && providerNames.has(body.provider) &&
+        typeof body.secret === 'string' && body.secret.length >= 16 && body.secret.length <= 1024, 'invalid_body');
+      await transaction(async client => {
+        const app = await client.query('SELECT id FROM applications WHERE tenant_id=$1 AND id=$2 FOR UPDATE', [tenantId, body.applicationId]);
+        assert(app.rowCount, 'not_found');
+        await client.query(`INSERT INTO provider_credentials(tenant_id,application_id,provider,secret_ciphertext)
+          VALUES($1,$2,$3,$4) ON CONFLICT(tenant_id,application_id,provider) DO UPDATE SET
+          previous_secret_ciphertext=provider_credentials.secret_ciphertext,
+          previous_expires_at=now()+interval '24 hours',
+          secret_ciphertext=EXCLUDED.secret_ciphertext,enabled=true,updated_at=now()`,
+        [tenantId, body.applicationId, body.provider, core.encryptSecret(body.secret)]);
+        await audit(client, tenantId, actor, 'provider_credential.saved', body.applicationId + ':' + body.provider);
+      });
+      return send(res, 200, {applicationId: body.applicationId, provider: body.provider, enabled: true});
+    }
+    if (method === 'DELETE' && resource === 'provider-credentials' && segments.length === 3) {
+      assert(validId(segments[1]) && providerNames.has(segments[2]), 'invalid_id');
+      const removed = await transaction(async client => {
+        const result = await client.query(`DELETE FROM provider_credentials WHERE tenant_id=$1 AND application_id=$2 AND provider=$3`,
+          [tenantId, segments[1], segments[2]]);
+        if (result.rowCount) await audit(client, tenantId, actor, 'provider_credential.deleted', segments[1] + ':' + segments[2]);
+        return result.rowCount;
+      });
+      assert(removed, 'not_found');
+      return send(res, 200, {deleted: true});
+    }
+    if (method === 'GET' && resource === 'events' && segments.length === 1) {
+      const rows = await query(`SELECT id,application_id,event_type,source,provider,trace_id,created_at
+        FROM events WHERE tenant_id=$1 ORDER BY created_at DESC,id DESC LIMIT 100`, [tenantId]);
+      return send(res, 200, rows.rows);
+    }
+    if (method === 'GET' && resource === 'events' && segments.length === 3 && segments[2] === 'timeline') {
+      assert(uuidPattern.test(segments[1]), 'invalid_id');
+      const event = await query(`SELECT id,application_id,event_type,source,provider,trace_id,created_at
+        FROM events WHERE tenant_id=$1 AND id=$2`, [tenantId, segments[1]]);
+      assert(event.rowCount, 'not_found');
+      const deliveries = await query(`SELECT id,subscription_id,endpoint_id,state,attempt,next_attempt_at,
+        last_status,last_error,created_at,updated_at FROM deliveries
+        WHERE tenant_id=$1 AND event_id=$2 ORDER BY created_at,id`, [tenantId, segments[1]]);
+      const attempts = await query(`SELECT a.delivery_id,a.attempt,a.status,a.outcome,a.duration_ms,a.created_at
+        FROM delivery_attempts a JOIN deliveries d ON d.id=a.delivery_id AND d.tenant_id=a.tenant_id
+        WHERE a.tenant_id=$1 AND d.event_id=$2 ORDER BY a.created_at,a.id LIMIT 501`, [tenantId, segments[1]]);
+      return send(res, 200, {event: event.rows[0], deliveries: deliveries.rows, attempts: attempts.rows.slice(0, 500),
+        truncated: attempts.rowCount > 500});
     }
     if (method === 'GET' && resource === 'deliveries' && segments.length === 1) {
       const rows = await query(`SELECT id,event_id,subscription_id,endpoint_id,target_url,state,attempt,next_attempt_at,last_status,last_error,created_at,updated_at
@@ -290,26 +360,20 @@ async function startPlatform(options) {
       const latency = await query(`SELECT percentile_cont(0.95) WITHIN GROUP (ORDER BY duration_ms) AS p95_ms
         FROM delivery_attempts WHERE tenant_id=$1 AND created_at >= now()-interval '24 hours'
         AND outcome NOT IN ('in_flight','interrupted')`, [tenantId]);
+      const totalLatency = await query(`SELECT percentile_cont(0.95) WITHIN GROUP
+        (ORDER BY extract(epoch FROM d.updated_at-e.created_at)*1000) AS p95_ms
+        FROM deliveries d JOIN events e ON e.tenant_id=d.tenant_id AND e.id=d.event_id
+        WHERE d.tenant_id=$1 AND d.state='delivered' AND e.created_at >= now()-interval '24 hours'`, [tenantId]);
       return send(res, 200, {window: '24h', total: row.total, delivered: row.delivered,
         deadLettered: row.dead_lettered, deliverySuccessRatio: row.total ? row.delivered / row.total : null,
         p95AttemptLatencyMs: latency.rows[0].p95_ms === null ? null : Number(latency.rows[0].p95_ms),
+        p95FinalDeliveryLatencyMs: totalLatency.rows[0].p95_ms === null ? null : Number(totalLatency.rows[0].p95_ms),
         target: 0.99, note: 'Accepted deliveries, including work still pending, are in the denominator.'});
     }
     return send(res, 404, {error: 'not_found'});
   }
 
-  async function publish(req, res, tenantId, appId, eventType) {
-    assert(core.eventTypePattern.test(eventType), 'invalid_id');
-    const token = bearer(req);
-    assert(token, 'unauthorized');
-    const appResult = await query('SELECT token_hash,enabled FROM applications WHERE tenant_id=$1 AND id=$2', [tenantId, appId]);
-    const app = appResult.rows[0];
-    assert(app && app.enabled && core.tokenMatches(app.token_hash, token), 'unauthorized');
-    const idempotencyKey = String(req.headers['idempotency-key'] || '').trim();
-    assert(idempotencyKey && idempotencyKey.length <= 128 && !/[\r\n]/.test(idempotencyKey), 'missing_idempotency_key');
-    const mediaType = String(req.headers['content-type'] || '').split(';')[0].trim().toLowerCase();
-    assert(mediaType === 'application/json' || mediaType === 'application/cloudevents+json', 'unsupported_media_type');
-    const raw = await bodyText(req);
+  async function acceptEvent({tenantId, appId, eventType, idempotencyKey, raw, mediaType, trace, source = 'application', provider = null}) {
     let value;
     try { value = JSON.parse(raw); } catch (_) { throw failure('invalid_json'); }
     const contractResult = await query(`SELECT schema_json,require_cloudevents,version FROM event_contracts
@@ -341,30 +405,36 @@ async function startPlatform(options) {
     catch (_) { throw failure('internal_error'); }
     assert(plan.accepted && Array.isArray(plan.subscriptions), 'invalid_contract');
     const fingerprint = crypto.createHash('sha256').update(mediaType + '\n' + eventType + '\n' + raw).digest('hex');
-    const trace = core.traceId(req.headers.traceparent);
     const created = await transaction(async client => {
       // All platform instances serialize new publications for this tenant in
       // PostgreSQL. A hash collision only reduces concurrency; the count is
       // still tenant-filtered. Acquire before checking idempotency so a retry
       // remains a duplicate even when the quota has been reached.
-      if (hourlyLimit) await client.query('SELECT pg_advisory_xact_lock(90261861, hashtext($1))', [tenantId]);
-      const existing = await client.query(`SELECT id,fingerprint FROM events WHERE tenant_id=$1 AND application_id=$2 AND idempotency_key=$3 FOR UPDATE`, [tenantId, appId, idempotencyKey]);
+      if (hourlyLimit || hourlyByteLimit || pendingLimit) await client.query('SELECT pg_advisory_xact_lock(90261861, hashtext($1))', [tenantId]);
+      const existing = await client.query(`SELECT id,fingerprint,source FROM events WHERE tenant_id=$1 AND application_id=$2 AND idempotency_key=$3 FOR UPDATE`, [tenantId, appId, idempotencyKey]);
       if (existing.rowCount) {
-        if (existing.rows[0].fingerprint !== fingerprint) throw failure('conflict');
+        if (existing.rows[0].fingerprint !== fingerprint || existing.rows[0].source !== source) throw failure('conflict');
         return {accepted: true, duplicate: true, eventId: existing.rows[0].id, deliveries: 0};
       }
-      if (hourlyLimit) {
-        const recent = await client.query(`SELECT count(*)::int AS total FROM events
+      if (hourlyLimit || hourlyByteLimit) {
+        const recent = await client.query(`SELECT count(*)::int AS total,
+          coalesce(sum(octet_length(body)),0)::bigint AS bytes FROM events
           WHERE tenant_id=$1 AND created_at >= now()-interval '1 hour'`, [tenantId]);
-        if (recent.rows[0].total >= hourlyLimit) throw failure('quota_exceeded');
+        if (hourlyLimit && recent.rows[0].total >= hourlyLimit ||
+          hourlyByteLimit && Number(recent.rows[0].bytes) + Buffer.byteLength(raw) > hourlyByteLimit) throw failure('quota_exceeded');
+      }
+      if (pendingLimit && plan.subscriptions.length) {
+        const queued = await client.query(`SELECT count(*)::int AS total FROM deliveries
+          WHERE tenant_id=$1 AND state IN ('pending','scheduled','in_flight')`, [tenantId]);
+        if (queued.rows[0].total + plan.subscriptions.length > pendingLimit) throw failure('quota_exceeded');
       }
       const eventId = crypto.randomUUID();
-      const inserted = await client.query(`INSERT INTO events(id,tenant_id,application_id,event_type,idempotency_key,fingerprint,body,content_type,trace_id)
-        VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9) ON CONFLICT(tenant_id,application_id,idempotency_key) DO NOTHING RETURNING id`,
-      [eventId, tenantId, appId, eventType, idempotencyKey, fingerprint, raw, mediaType, trace]);
+      const inserted = await client.query(`INSERT INTO events(id,tenant_id,application_id,event_type,idempotency_key,fingerprint,body,content_type,trace_id,source,provider)
+        VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) ON CONFLICT(tenant_id,application_id,idempotency_key) DO NOTHING RETURNING id`,
+      [eventId, tenantId, appId, eventType, idempotencyKey, fingerprint, raw, mediaType, trace, source, provider]);
       if (!inserted.rowCount) {
-        const raced = await client.query('SELECT id,fingerprint FROM events WHERE tenant_id=$1 AND application_id=$2 AND idempotency_key=$3', [tenantId, appId, idempotencyKey]);
-        if (raced.rows[0].fingerprint !== fingerprint) throw failure('conflict');
+        const raced = await client.query('SELECT id,fingerprint,source FROM events WHERE tenant_id=$1 AND application_id=$2 AND idempotency_key=$3', [tenantId, appId, idempotencyKey]);
+        if (!raced.rowCount || raced.rows[0].fingerprint !== fingerprint || raced.rows[0].source !== source) throw failure('conflict');
         return {accepted: true, duplicate: true, eventId: raced.rows[0].id, deliveries: 0};
       }
       for (const item of catalog.rows) {
@@ -375,6 +445,52 @@ async function startPlatform(options) {
       }
       return {accepted: true, duplicate: false, eventId, deliveries: plan.subscriptions.length};
     });
+    return created;
+  }
+
+  async function publish(req, res, tenantId, appId, eventType) {
+    assert(core.eventTypePattern.test(eventType), 'invalid_id');
+    const token = bearer(req);
+    assert(token, 'unauthorized');
+    const appResult = await query('SELECT token_hash,enabled FROM applications WHERE tenant_id=$1 AND id=$2', [tenantId, appId]);
+    const app = appResult.rows[0];
+    assert(app && app.enabled && core.tokenMatches(app.token_hash, token), 'unauthorized');
+    const idempotencyKey = String(req.headers['idempotency-key'] || '').trim();
+    assert(idempotencyKey && idempotencyKey.length <= 128 && !/[\r\n]/.test(idempotencyKey), 'missing_idempotency_key');
+    const mediaType = String(req.headers['content-type'] || '').split(';')[0].trim().toLowerCase();
+    assert(mediaType === 'application/json' || mediaType === 'application/cloudevents+json', 'unsupported_media_type');
+    const raw = await bodyText(req);
+    const created = await acceptEvent({tenantId, appId, eventType, idempotencyKey, raw, mediaType,
+      trace: core.traceId(req.headers.traceparent)});
+    return send(res, created.duplicate ? 200 : 202, created);
+  }
+
+  async function providerIngress(req, res, tenantId, appId, provider) {
+    assert(providerNames.has(provider), 'not_found');
+    assert(validId(appId), 'invalid_id');
+    if (provider === 'generic-hmac') assert(typeof req.headers['x-webhook-timestamp'] === 'string', 'unauthorized');
+    const mediaType = String(req.headers['content-type'] || '').split(';')[0].trim().toLowerCase();
+    assert(mediaType === 'application/json', 'unsupported_media_type');
+    const credentials = await query(`SELECT c.secret_ciphertext,
+      CASE WHEN c.previous_expires_at > now() THEN c.previous_secret_ciphertext ELSE NULL END AS previous_secret_ciphertext
+      FROM provider_credentials c
+      JOIN applications a ON a.tenant_id=c.tenant_id AND a.id=c.application_id
+      WHERE c.tenant_id=$1 AND c.application_id=$2 AND c.provider=$3 AND c.enabled AND a.enabled`,
+    [tenantId, appId, provider]);
+    assert(credentials.rowCount, 'not_found');
+    const headers = providerHeaders(req);
+    const raw = await bodyText(req);
+    const row = credentials.rows[0];
+    const secrets = [core.decryptSecret(row.secret_ciphertext)];
+    if (row.previous_secret_ciphertext) secrets.push(core.decryptSecret(row.previous_secret_ciphertext));
+    let verified;
+    try { verified = JSON.parse(callbacks.verifyProvider(provider, JSON.stringify(secrets), headers, raw, BigInt(Math.floor(Date.now() / 1000)))); }
+    catch (_) { throw failure('internal_error'); }
+    assert(verified.accepted && typeof verified.deliveryId === 'string' && verified.deliveryId.length > 0, 'unauthorized');
+    assert(core.eventTypePattern.test(verified.eventType), 'invalid_body');
+    const idempotencyKey = `provider:${provider}:${crypto.createHash('sha256').update(verified.deliveryId).digest('hex')}`;
+    const created = await acceptEvent({tenantId, appId, eventType: verified.eventType, idempotencyKey,
+      raw, mediaType, trace: core.traceId(req.headers.traceparent), source: 'provider', provider});
     return send(res, created.duplicate ? 200 : 202, created);
   }
 
@@ -408,6 +524,13 @@ async function startPlatform(options) {
       WHERE outcome NOT IN ('in_flight','interrupted')`);
     const backlog = await query(`SELECT coalesce(extract(epoch FROM now()-min(created_at)),0)::int AS oldest_seconds
       FROM deliveries WHERE state IN ('pending','scheduled')`);
+    const finalDurations = await query(`SELECT count(*)::int AS total,
+      coalesce(sum(extract(epoch FROM d.updated_at-e.created_at)*1000),0)::bigint AS total_ms,
+      count(*) FILTER (WHERE d.updated_at-e.created_at <= interval '1 second')::int AS le1000,
+      count(*) FILTER (WHERE d.updated_at-e.created_at <= interval '5 seconds')::int AS le5000,
+      count(*) FILTER (WHERE d.updated_at-e.created_at <= interval '30 seconds')::int AS le30000,
+      count(*) FILTER (WHERE d.updated_at-e.created_at <= interval '5 minutes')::int AS le300000
+      FROM deliveries d JOIN events e ON e.tenant_id=d.tenant_id AND e.id=d.event_id WHERE d.state='delivered'`);
     const openAlerts = await query("SELECT count(*)::int AS count FROM alerts WHERE state='open'");
     const lines = ['# HELP hooklab_deliveries Current deliveries by state', '# TYPE hooklab_deliveries gauge'];
     for (const row of states.rows) lines.push(`hooklab_deliveries{state="${row.state}"} ${row.count}`);
@@ -420,6 +543,15 @@ async function startPlatform(options) {
     }
     lines.push(`hooklab_delivery_duration_ms_bucket{le="+Inf"} ${histogram.total}`,
       `hooklab_delivery_duration_ms_sum ${histogram.total_ms}`, `hooklab_delivery_duration_ms_count ${histogram.total}`,
+      '# HELP hooklab_delivery_total_latency_ms Time from event acceptance to final delivery',
+      '# TYPE hooklab_delivery_total_latency_ms histogram');
+    const finalHistogram = finalDurations.rows[0];
+    for (const [limit, column] of [['1000','le1000'],['5000','le5000'],['30000','le30000'],['300000','le300000']]) {
+      lines.push(`hooklab_delivery_total_latency_ms_bucket{le="${limit}"} ${finalHistogram[column]}`);
+    }
+    lines.push(`hooklab_delivery_total_latency_ms_bucket{le="+Inf"} ${finalHistogram.total}`,
+      `hooklab_delivery_total_latency_ms_sum ${finalHistogram.total_ms}`,
+      `hooklab_delivery_total_latency_ms_count ${finalHistogram.total}`,
       '# HELP hooklab_backlog_oldest_age_seconds Age of oldest pending or scheduled delivery',
       '# TYPE hooklab_backlog_oldest_age_seconds gauge', `hooklab_backlog_oldest_age_seconds ${backlog.rows[0].oldest_seconds}`,
       '# HELP hooklab_open_alerts Open local alert conditions', '# TYPE hooklab_open_alerts gauge',
@@ -462,6 +594,9 @@ async function startPlatform(options) {
         safeMutationOrigin(req);
         return publish(req, res, tenantId, tail[1], tail[3]);
       }
+      if (req.method === 'POST' && tail[0] === 'applications' && tail[2] === 'providers' && tail.length === 4) {
+        return providerIngress(req, res, tenantId, tail[1], tail[3]);
+      }
       return control(req, res, tenantId, tail, url);
     }
     return send(res, 404, {error: 'not_found'});
@@ -492,4 +627,4 @@ async function startPlatform(options) {
   }};
 }
 
-module.exports = {startPlatform};
+module.exports = {startPlatform, providerHeaders};

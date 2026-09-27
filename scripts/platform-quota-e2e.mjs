@@ -46,7 +46,8 @@ function launch(port) {
     {cwd: root, detached: process.platform !== 'win32', stdio: ['ignore', 'pipe', 'pipe'],
       env: {...process.env, DATABASE_URL: databaseUrl, HOOKLAB_ENCRYPTION_KEY: 'd'.repeat(64),
         HOOKLAB_BOOTSTRAP_TOKEN: bootstrap, HOOKLAB_METRICS_TOKEN: metrics,
-        HOOKLAB_TENANT_HOURLY_EVENT_LIMIT: '2'}});
+        HOOKLAB_TENANT_HOURLY_EVENT_LIMIT: '2', HOOKLAB_TENANT_HOURLY_BYTE_LIMIT: '40',
+        HOOKLAB_TENANT_PENDING_LIMIT: '1', HOOKLAB_ALLOW_LOOPBACK_ENDPOINTS: '1'}});
   child.stdout.on('data', chunk => { logs += chunk; });
   child.stderr.on('data', chunk => { logs += chunk; });
   children.push(child);
@@ -83,7 +84,28 @@ try {
   assert.equal(otherApp.status, 201);
   assert.equal((await api(baseA, '/api/tenants/' + otherTenant + '/applications/orders/events/order.created',
     'POST', otherApp.data.publishToken, {orderId: 1}, {'idempotency-key': 'other-1'})).status, 202);
-  console.log('Shared PostgreSQL quota passed: two instances accepted exactly two new events, preserved duplicates and isolated tenants.');
+  assert.equal((await api(baseA, '/api/tenants/' + otherTenant + '/applications/orders/events/order.created',
+    'POST', otherApp.data.publishToken, {orderId: 2, padding: 'x'.repeat(40)},
+    {'idempotency-key': 'other-too-large'})).status, 429);
+  const backlogTenant = tenant + '-backlog';
+  const backlog = await api(baseA, '/api/admin/tenants', 'POST', bootstrap, {id: backlogTenant, name: 'Backlog tenant'});
+  assert.equal(backlog.status, 201);
+  const backlogApi = '/api/tenants/' + backlogTenant;
+  const backlogApp = await api(baseA, backlogApi + '/applications', 'POST', backlog.data.ownerToken, {id: 'orders'});
+  assert.equal(backlogApp.status, 201);
+  const unused = await freePort();
+  assert.equal((await api(baseA, backlogApi + '/endpoints', 'POST', backlog.data.ownerToken,
+    {id: 'offline', url: `http://127.0.0.1:${unused}/events`})).status, 201);
+  assert.equal((await api(baseA, backlogApi + '/subscriptions', 'POST', backlog.data.ownerToken,
+    {id: 'only', applicationId: 'orders', endpointId: 'offline', eventTypes: ['order.created']})).status, 201);
+  const backlogRoute = backlogApi + '/applications/orders/events/order.created';
+  assert.equal((await api(baseA, backlogRoute, 'POST', backlogApp.data.publishToken,
+    {orderId: 1}, {'idempotency-key': 'backlog-1'})).status, 202);
+  assert.equal((await api(baseB, backlogRoute, 'POST', backlogApp.data.publishToken,
+    {orderId: 2}, {'idempotency-key': 'backlog-2'})).status, 429);
+  assert.equal((await client.query('SELECT count(*)::int AS total FROM events WHERE tenant_id=$1',
+    [backlogTenant])).rows[0].total, 1);
+  console.log('Shared PostgreSQL quotas passed: cross-instance event, byte and pending-delivery caps, duplicates and tenant isolation.');
 } catch (error) { console.error(logs); throw error; }
 finally {
   await client.end().catch(() => {});

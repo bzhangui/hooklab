@@ -56,17 +56,19 @@ try {
   created = true;
   await database(['pg_restore', '-U', 'hooklab', '-d', tempDb, '--exit-on-error', '--no-owner', '--no-acl'], {input: archive});
   const result = await database(['psql', '-U', 'hooklab', '-d', tempDb, '-At', '-c',
-    "SELECT (SELECT max(version) FROM hooklab_schema), (SELECT count(*) FROM pg_tables WHERE schemaname='public' AND tablename IN ('hooklab_schema','tenants','access_keys','applications','endpoints','subscriptions','event_contracts','events','deliveries','delivery_attempts','audit_entries','alerts')), (SELECT count(*) FROM tenants), (SELECT count(*) FROM events), (SELECT count(*) FROM endpoints), (SELECT count(*) FROM delivery_attempts)"]);
+    "SELECT (SELECT max(version) FROM hooklab_schema), (SELECT count(*) FROM pg_tables WHERE schemaname='public' AND tablename IN ('hooklab_schema','tenants','access_keys','applications','endpoints','subscriptions','event_contracts','events','deliveries','delivery_attempts','audit_entries','alerts','provider_credentials')), (SELECT count(*) FROM tenants), (SELECT count(*) FROM events), (SELECT count(*) FROM endpoints), (SELECT count(*) FROM delivery_attempts), (SELECT count(*) FROM provider_credentials)"]);
   const fields = result.split('|').map(Number);
-  if (fields.length !== 6 || ![1, 2].includes(fields[0]) || fields[1] !== 12 || fields.some(value => !Number.isInteger(value) || value < 0)) {
+  if (fields.length !== 7 || fields[0] !== 3 || fields[1] !== 13 || fields.some(value => !Number.isInteger(value) || value < 0)) {
     throw new Error('Restored database failed schema and count checks');
   }
-  const ciphertext = await database(['psql', '-U', 'hooklab', '-d', tempDb, '-At', '-c',
-    'SELECT secret_ciphertext FROM endpoints ORDER BY id LIMIT 1']);
-  if (fields[4] > 0) {
+  async function verifyCiphertext(table, count) {
+    if (!count) return;
+    const order = table === 'provider_credentials' ? 'application_id' : 'id';
+    const ciphertext = await database(['psql', '-U', 'hooklab', '-d', tempDb, '-At', '-c',
+      `SELECT secret_ciphertext FROM ${table} ORDER BY ${order} LIMIT 1`]);
     const parts = ciphertext.split('.');
     if (parts.length !== 3 || !/^[0-9a-fA-F]{64}$/.test(env.HOOKLAB_ENCRYPTION_KEY || '')) {
-      throw new Error('Restored endpoint cannot be checked with the configured encryption key');
+      throw new Error('Restored encrypted secret cannot be checked with the configured key');
     }
     try {
       const [iv, tag, value] = parts.map(part => Buffer.from(part, 'base64url'));
@@ -74,8 +76,10 @@ try {
       decipher.setAuthTag(tag);
       const secret = Buffer.concat([decipher.update(value), decipher.final()]);
       if (secret.length < 16) throw new Error('Restored secret is unexpectedly short');
-    } catch (_) { throw new Error('Restored endpoint secret cannot be decrypted with the configured key'); }
+    } catch (_) { throw new Error('Restored secret cannot be decrypted with the configured key'); }
   }
+  await verifyCiphertext('endpoints', fields[4]);
+  await verifyCiphertext('provider_credentials', fields[6]);
   const manifest = {
     format: 'hooklab-backup-v1',
     archive: path.basename(archive),
@@ -83,15 +87,17 @@ try {
     sha256: await sha256File(archive),
     encryptionKeySha256: crypto.createHash('sha256').update(Buffer.from(env.HOOKLAB_ENCRYPTION_KEY, 'hex')).digest('hex'),
     schemaVersion: fields[0],
-    counts: {tenants: fields[2], events: fields[3], endpoints: fields[4], deliveryAttempts: fields[5]},
+    counts: {tenants: fields[2], events: fields[3], endpoints: fields[4],
+      deliveryAttempts: fields[5], providerCredentials: fields[6]},
   };
   fs.writeFileSync(archive + '.manifest.json', JSON.stringify(manifest, null, 2) + '\n',
     {flag: 'wx', mode: 0o600});
   console.log('Backup restored and verified in an isolated temporary database.');
   console.log('Restored tenants: ' + fields[2] + '; events: ' + fields[3] +
-    '; endpoints: ' + fields[4] + '; delivery attempts: ' + fields[5] + '.');
-  console.log(fields[4] ? 'Restored endpoint secret decrypted with the configured key.' :
-    'No endpoint secret exists; key compatibility was not tested.');
+    '; endpoints: ' + fields[4] + '; delivery attempts: ' + fields[5] +
+    '; provider credentials: ' + fields[6] + '.');
+  console.log(fields[4] || fields[6] ? 'Restored encrypted secrets decrypted with the configured key.' :
+    'No encrypted secret exists; key compatibility was not tested.');
   console.log('Private archive: ' + archive);
   console.log('Private manifest: ' + archive + '.manifest.json');
   console.log('Back up HOOKLAB_ENCRYPTION_KEY separately; it is not inside the database archive.');

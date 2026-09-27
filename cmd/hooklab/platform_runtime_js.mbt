@@ -7,12 +7,13 @@ extern "js" fn run_platform_runtime(
   decide : (Int, Int, String, String) -> String,
   validate : (String, String, String, String, Bool) -> String,
   compatible : (String, String) -> Bool,
+  verify_provider : (String, String, String, String, Int64) -> String,
 ) -> Unit =
-  #| function(port, plan, sign, decide, validate, compatible) {
+  #| function(port, plan, sign, decide, validate, compatible, verifyProvider) {
   #|   const path = require('node:path');
   #|   const root = process.env.HOOKLAB_PLATFORM_ROOT || process.cwd();
   #|   const {startPlatform} = require(path.join(root, 'platform', 'server.cjs'));
-  #|   startPlatform({port, callbacks: {plan, sign, decide, validate, compatible}}).then(runtime => {
+  #|   startPlatform({port, callbacks: {plan, sign, decide, validate, compatible, verifyProvider}}).then(runtime => {
   #|     console.log('HookLab platform listening on ' + (process.env.HOOKLAB_BIND_HOST || '127.0.0.1') + ':' + port);
   #|     const shutdown = () => runtime.close().then(() => process.exit(0)).catch(error => {console.error(error); process.exit(1);});
   #|     process.once('SIGINT', shutdown);

@@ -6,6 +6,7 @@ fn run_platform_runtime(
   _decide : (Int, Int, String, String) -> String,
   _validate : (String, String, String, String, Bool) -> String,
   _compatible : (String, String) -> Bool,
+  _verify_provider : (String, String, String, String, Int64) -> String,
 ) -> Unit {
   println(
     "The PostgreSQL platform is available in the JavaScript/Node.js build.",

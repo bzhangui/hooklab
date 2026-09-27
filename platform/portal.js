@@ -31,8 +31,15 @@ byId('connection').addEventListener('submit', async event => {
 });
 byId('disconnect').addEventListener('click', () => {
   tenant = ''; token = '';
-  for (const id of ['catalog','events','deliveries','alerts','slo','action-result']) byId(id).textContent = '';
+  for (const id of ['catalog','events','deliveries','alerts','slo','action-result','timeline']) byId(id).textContent = '';
   notice('已断开');
+});
+byId('timeline-form').addEventListener('submit', async event => {
+  event.preventDefault();
+  if (!tenant || !token) return notice('请先连接租户');
+  const id = byId('timeline-id').value.trim();
+  try { show('timeline', await api('events/' + encodeURIComponent(id) + '/timeline')); }
+  catch (error) { notice(error.message); }
 });
 byId('action').addEventListener('submit', async event => {
   event.preventDefault();

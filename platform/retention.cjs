@@ -29,7 +29,7 @@ async function applyRetention(client, settings) {
   await client.query('BEGIN');
   try {
     const marker = await client.query('SELECT version FROM hooklab_schema ORDER BY version');
-    if (marker.rows.map(row => Number(row.version)).join(',') !== '1,2') throw new Error('Expected HookLab PostgreSQL schema v2');
+    if (marker.rows.map(row => Number(row.version)).join(',') !== '1,2,3') throw new Error('Expected HookLab PostgreSQL schema v3');
     const tenant = await client.query('SELECT id FROM tenants WHERE id=$1 FOR UPDATE', [input.tenantId]);
     if (!tenant.rowCount) throw new Error('Unknown tenant');
     const selection = await client.query(`SELECT e.id FROM events e WHERE ${eligible}

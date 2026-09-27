@@ -29,6 +29,13 @@
       <section class="panel"><h2>最近交付</h2><pre id="deliveries">尚未连接</pre></section>
     </div>
     <section class="panel">
+      <h2>事件处理时间线</h2>
+      <p>输入事件 ID 查看交付与尝试记录；结果不包含原始正文或密钥。</p>
+      <form id="timeline-form"><label>事件 ID <input id="timeline-id" required autocomplete="off"></label>
+        <button type="submit">查询</button></form>
+      <pre id="timeline" aria-live="polite"></pre>
+    </section>
+    <section class="panel">
       <h2>资源管理</h2>
       <p>创建和轮换时的令牌或签名密钥只显示一次；请立即安全保存。已有密钥不会在目录中回显。</p>
       <form id="action">

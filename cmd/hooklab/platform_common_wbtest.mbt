@@ -55,3 +55,28 @@ test "platform callback uses MoonBit delivery decisions" {
     content="{\"decision\":\"retry\",\"delay_ms\":1000}",
   )
 }
+
+///|
+test "platform provider callback verifies raw body before acceptance" {
+  let body = "{\"itemId\":\"part-1\"}"
+  let timestamp = "1790000000"
+  let signature = "sha256=" +
+    @crypto.hmac_sha256_hex("provider-secret-123456", timestamp + "." + body)
+  let headers = "[{\"name\":\"x-webhook-signature\",\"value\":" +
+    gateway_json_string(signature) +
+    "},{\"name\":\"x-webhook-timestamp\",\"value\":\"1790000000\"}," +
+    "{\"name\":\"x-webhook-id\",\"value\":\"incoming-1\"}," +
+    "{\"name\":\"x-webhook-event\",\"value\":\"warehouse.updated\"}]"
+  inspect(
+    platform_verify_provider(
+      "generic-hmac", "[\"provider-secret-123456\"]", headers, body, 1790000000L,
+    ),
+    content="{\"accepted\":true,\"eventType\":\"warehouse.updated\",\"deliveryId\":\"incoming-1\"}",
+  )
+  inspect(
+    platform_verify_provider(
+      "generic-hmac", "[\"provider-secret-123456\"]", headers, "{}", 1790000000L,
+    ),
+    content="{\"accepted\":false,\"code\":\"signature_mismatch\"}",
+  )
+}
