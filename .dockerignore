@@ -10,5 +10,6 @@ backups
 *.sqlite
 *.sqlite-wal
 *.sqlite-shm
+*.hooklab-transfer.json
 项目申报书.md
 *.log
