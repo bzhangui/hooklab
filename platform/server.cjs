@@ -7,6 +7,7 @@ const crypto = require('node:crypto');
 const {Pool} = require('pg');
 const {createWorker} = require('./worker.cjs');
 const core = require('./core.cjs');
+const {runMigrations, latestVersion} = require('./migrations.cjs');
 
 const roles = {viewer: 1, developer: 2, owner: 3};
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -73,17 +74,17 @@ async function startPlatform(options) {
     connectionTimeoutMillis: 5000, idleTimeoutMillis: 30000});
   pool.on('error', error => console.error('HookLab PostgreSQL pool:', error));
   const migration = await pool.connect();
+  let migrationFailed = null;
   try {
     await migration.query('SELECT pg_advisory_lock(90261860)');
-    const version = await migration.query("SELECT to_regclass('public.hooklab_schema') AS name");
-    if (version.rows[0].name) {
-      const current = await migration.query('SELECT max(version) AS version FROM hooklab_schema');
-      if (Number(current.rows[0].version) > 1) throw new Error('Database schema is newer than this HookLab version');
-    }
-    await migration.query(fs.readFileSync(path.join(__dirname, 'schema.sql'), 'utf8'));
+    await runMigrations(migration, {allowUpgrade: process.env.HOOKLAB_ALLOW_SCHEMA_UPGRADE === '1'});
     await migration.query('SELECT pg_advisory_unlock(90261860)');
-  } catch (error) { try { await migration.query('SELECT pg_advisory_unlock(90261860)'); } catch (_) {} await pool.end(); throw error; }
+  } catch (error) {
+    migrationFailed = error;
+    try { await migration.query('SELECT pg_advisory_unlock(90261860)'); } catch (_) {}
+  }
   finally { migration.release(); }
+  if (migrationFailed) { await pool.end(); throw migrationFailed; }
 
   const callbacks = options.callbacks;
   const worker = createWorker(pool, callbacks, {maxParallel: process.env.HOOKLAB_MAX_WORKERS});
@@ -432,7 +433,7 @@ async function startPlatform(options) {
     const segments = url.pathname.split('/').filter(Boolean);
     if (req.method === 'GET' && url.pathname === '/health') {
       await query('SELECT 1');
-      return send(res, 200, {status: 'ok', storage: 'postgresql', schemaVersion: 1, workerId: worker.workerId});
+      return send(res, 200, {status: 'ok', storage: 'postgresql', schemaVersion: latestVersion, workerId: worker.workerId});
     }
     if (req.method === 'GET' && url.pathname === '/metrics') return metrics(req, res);
     if (req.method === 'GET' && url.pathname === '/') return sendText(res, 200,

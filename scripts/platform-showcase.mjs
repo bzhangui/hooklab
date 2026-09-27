@@ -5,6 +5,7 @@ import path from 'node:path';
 import {spawn, execFileSync} from 'node:child_process';
 import pg from 'pg';
 import {stopChild} from './e2e-process.mjs';
+import receiverSdk from '../sdk/node/receiver.cjs';
 
 // A repeatable, synthetic evaluation scenario. Never point this at a shared DB.
 const databaseUrl = process.env.TEST_DATABASE_URL;
@@ -19,6 +20,9 @@ const tenant = 'showcase-' + crypto.randomBytes(5).toString('hex');
 const events = [];
 const children = [];
 let holdFirst = true;
+let signingSecret = '';
+let signingKeyId = '';
+const processed = new Set();
 let logs = '';
 
 async function freePort() {
@@ -78,8 +82,13 @@ const receiverPort = await freePort();
 const baseA = 'http://127.0.0.1:' + portA;
 const baseB = 'http://127.0.0.1:' + portB;
 const receiver = http.createServer((req, res) => {
-  req.resume();
+  const chunks = [];
+  req.on('data', chunk => chunks.push(chunk));
   req.on('end', () => {
+    const verified = receiverSdk.verifyDelivery({headers: req.headers, body: Buffer.concat(chunks),
+      secrets: {[signingKeyId]: signingSecret}});
+    if (!verified.ok) { res.writeHead(401); res.end(); return; }
+    processed.add(verified.deliveryId);
     events.push({eventId: req.headers['x-hooklab-event-id'],
       deliveryId: req.headers['x-hooklab-delivery-id']});
     if (holdFirst) { holdFirst = false; return; } // Simulate a lost response.
@@ -103,6 +112,8 @@ try {
   const endpoint = await api(baseA, route + '/endpoints', 'POST', owner,
     {id: 'warehouse', url: 'http://127.0.0.1:' + receiverPort + '/orders'});
   assert.equal(endpoint.status, 201);
+  signingSecret = endpoint.data.signingSecret;
+  signingKeyId = endpoint.data.keyId;
   assert.equal((await api(baseA, route + '/subscriptions', 'POST', owner,
     {id: 'orders-to-warehouse', applicationId: 'orders', endpointId: 'warehouse', eventTypes: ['order.created']})).status, 201);
   assert.equal((await api(baseA, route + '/contracts', 'POST', owner,
@@ -137,6 +148,7 @@ try {
   assert.equal(recovered.attempt, 2);
   assert.equal(events.filter(item => item.eventId === accepted.data.eventId).length, 2);
   assert.equal(new Set(events.filter(item => item.eventId === accepted.data.eventId).map(item => item.deliveryId)).size, 1);
+  assert.equal(processed.size, 1, 'A repeated delivery must have one unique consumer delivery ID');
   const attempts = await client.query('SELECT attempt,outcome FROM delivery_attempts WHERE delivery_id=$1 ORDER BY id', [recovered.id]);
   assert.deepEqual(attempts.rows, [
     {attempt: 1, outcome: 'interrupted'},
@@ -167,12 +179,14 @@ try {
     return result.rows[0].n === sampleSize;
   }, 30000);
   const deliveredMs = Math.round(performance.now() - batchStart);
+  assert.equal(processed.size, sampleSize + 1);
   assert.equal((await api(baseB, route + '/catalog', 'GET', 'wrong-token')).status, 401);
   const summary = {
     scenario: 'synthetic_loopback_order_delivery',
     contract_rejection_without_persistence: true,
     failover: {same_delivery_id: true, network_attempts: 2, persisted_attempts: ['interrupted', 'delivered'],
-      lease_takeover_ms: recoveryMs, final_state: recovered.state},
+      lease_takeover_ms: recoveryMs, final_state: recovered.state, receiver_signatures_verified: true,
+      deduplicated_consumer_ids: 1},
     local_sample: {events: sampleSize, concurrent_publish_calls: sampleSize,
       publish_batch_ms: acceptedMs, publish_p50_ms: percentile(publishLatencies, 0.5),
       publish_p95_ms: percentile(publishLatencies, 0.95), all_delivered_ms: deliveredMs},

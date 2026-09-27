@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import crypto from 'node:crypto';
+import receiverSdk from '../sdk/node/receiver.cjs';
 import fs from 'node:fs';
 import path from 'node:path';
 
@@ -71,6 +72,10 @@ for (const attempt of received) {
   assert.equal(fields['x-hooklab-event-type'], 'order.created');
   assert.equal(fields['x-hooklab-key-id'], endpoint.data.keyId);
   assert.deepEqual(JSON.parse(attempt.body), payload);
+  assert.deepEqual(receiverSdk.verifyDelivery({headers: fields, body: Buffer.from(attempt.body, 'utf8'),
+    secrets: {[endpoint.data.keyId]: endpoint.data.signingSecret}}),
+  {ok: true, eventId: event.data.eventId, deliveryId: delivery.id, eventType: 'order.created',
+    keyId: endpoint.data.keyId, timestamp: Number(fields['x-hooklab-timestamp'])});
   const signed = 'v1\n' + fields['x-hooklab-timestamp'] + '\n' + delivery.id + '\n' +
     event.data.eventId + '\norder.created\n' + attempt.body;
   const expected = 'v1=' + crypto.createHmac('sha256', endpoint.data.signingSecret).update(signed).digest('hex');

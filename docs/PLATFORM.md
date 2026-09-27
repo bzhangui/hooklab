@@ -17,7 +17,7 @@ export HOOKLAB_METRICS_TOKEN='<different-random-secret-at-least-32-characters>'
 moon run --target js cmd/hooklab -- serve-platform 8787
 ```
 
-上述值是占位符，不能用于正式环境。首次启动自动建立 schema v1；启动时用 PostgreSQL advisory lock 串行化建表。数据库只应由 HookLab 使用。后续升级若引入更高版本 schema，旧程序会拒绝启动；当前没有 SQLite → PostgreSQL 自动迁移工具。`GET /health` 检查进程和数据库连接。门户位于 `http://127.0.0.1:8787/`，默认只监听回环地址。
+上述值是占位符，不能用于正式环境。首次启动自动建立 PostgreSQL schema v2；启动时用 PostgreSQL advisory lock 串行化初始化或迁移。已有 v1 库必须在隔离恢复验证备份后，明确设置 `HOOKLAB_ALLOW_SCHEMA_UPGRADE=1` 才会做事务性加法升级，成功后移除此变量；见[升级与保留操作](RETENTION.md)。数据库只应由 HookLab 使用，旧程序会拒绝读取更高版本 schema。当前没有 SQLite → PostgreSQL 自动迁移工具。`GET /health` 检查进程和数据库连接。门户位于 `http://127.0.0.1:8787/`，默认只监听回环地址。
 
 ## 从租户到交付
 
@@ -53,6 +53,8 @@ curl -X POST http://127.0.0.1:8787/api/tenants/acme/applications/orders/events/o
 ```
 
 消费者收到原始 JSON 正文、`X-HookLab-Event-Id`、`X-HookLab-Delivery-Id`、`X-HookLab-Event-Type`、`X-HookLab-Key-Id`、`X-HookLab-Timestamp`、`X-HookLab-Signature` 和 `traceparent`。签名规范与 [OUTBOUND.md](OUTBOUND.md) 相同。重试会改变时间戳但保留事件/交付 ID。消费者应以交付 ID 去重。3xx 不跟随跳转；网络错误、408/425/429/5xx 按 MoonBit 重试策略处理，其他 4xx 进入死信。
+
+可使用[Node.js 接收方集成包](RECEIVER.md)验签与运行回环示例；业务去重必须在接收方自己的持久事务中完成。该示例不代表已有外部使用方。
 
 Worker 领取任务时先在同一数据库事务中记录 `in_flight` 尝试，完成后更新为 `delivered`、`scheduled` 或 `dead_lettered`。如果 Worker 崩溃并由另一个实例接管，旧记录标为 `interrupted`，新尝试另起一条。`interrupted` 只表示原 Worker 未留下终态，**不能证明请求一定已到达消费者**；也不能据此保证恰好一次交付。未结束与中断的尝试不计入耗时 p95/直方图，但中断数量出现在尝试结果指标和租户历史中。
 
@@ -111,5 +113,7 @@ TEST_DATABASE_URL='postgresql://postgres:postgres@127.0.0.1:5432/hooklab_test' n
 ```
 
 `platform/schema.test.cjs` 使用 PGlite 检查表结构和租户外键；它不能替代真实 PostgreSQL 的并发语义。CI 的 PostgreSQL 17 服务执行双实例端到端测试。升级前备份数据库并在相同版本的测试环境演练恢复；监控 CI、死信、积压、SLO 和密钥轮换记录。
+
+`npm run schema:inspect` 可只读检查 PostgreSQL schema 版本；`npm run retention -- --tenant <id> --days 90` 只预览旧终态事件，执行删除需额外 `--apply --confirm-tenant <id>`。完整安全条件、幂等窗口影响和备份边界见[升级与保留操作](RETENTION.md)。
 
 第二个脚本会强制终止它自己启动的一个 Worker，以验证租约到期后的接管；同时输出仅针对本机合成负载的耗时样本。运行前请阅读[季度评选证据与边界](QUARTERLY_EVIDENCE.md)，不要将样本当成生产性能或真实用户成效。

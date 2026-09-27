@@ -7,7 +7,9 @@
   "dependencies": {"ipaddr.js": "^2.2.0", "pg": "^8.23.0"},
   "devDependencies": {"@electric-sql/pglite": "^0.5.8"},
   "scripts": {
-    "test:platform": "node --test platform/*.test.cjs",
+    "test:platform": "node --test platform/*.test.cjs sdk/node/*.test.cjs examples/receiver-node/*.test.cjs",
+    "schema:inspect": "node scripts/schema-inspect.mjs",
+    "retention": "node scripts/retention.mjs",
     "quickstart": "node scripts/quickstart.mjs",
     "backup:verify": "node scripts/backup-verify.mjs",
     "backup:inspect": "node scripts/backup-inspect.mjs"

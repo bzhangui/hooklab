@@ -19,6 +19,7 @@ COPY package.json package-lock.json ./
 RUN npm ci --omit=dev --ignore-scripts && npm cache clean --force
 COPY --from=build /src/_build/js/debug/build/cmd/hooklab/hooklab.js ./hooklab.js
 COPY --from=build /src/platform ./platform
+COPY scripts/retention.mjs scripts/schema-inspect.mjs ./scripts/
 USER node
 EXPOSE 8787
 CMD ["node", "hooklab.js", "serve-platform", "8787"]

@@ -24,4 +24,8 @@
 
 ## 先做的受控合成验收
 
-无需第三方授权时，可复现的**仅是技术预演**：在公开 CI 的 `deployment` 作业里，隔离容器会拒绝错误契约事件，向 CI-only 接收端发送一条有效订单，验证首次 503 后再次 204、两次独立 HMAC、同一投递 ID、最终尝试记录与幂等重复抑制，并做隔离数据库恢复及密钥检查。具体断言见 `scripts/compose-smoke.mjs`，MoonBit 与 Node.js 的职责见 [MOONBIT_CORE.md](MOONBIT_CORE.md)。默认本机 Compose 没有启用回环目标测试开关，不能将该 CI 配置暴露公网。
+无需第三方授权时，可复现的**仅是技术预演**：在公开 CI 的 `deployment` 作业里，隔离容器会拒绝错误契约事件，向 CI-only 接收端发送一条有效订单，验证首次 503 后再次 204、接收方 SDK 对两次真实投递的签名核对、同一投递 ID、最终尝试记录与幂等重复抑制，并做隔离数据库恢复及密钥检查。具体断言见 `scripts/compose-smoke.mjs`，MoonBit 与 Node.js 的职责见 [MOONBIT_CORE.md](MOONBIT_CORE.md)。默认本机 Compose 没有启用回环目标测试开关，不能将该 CI 配置暴露公网。
+
+本地受控验收分三层：`npm run test:platform` 验证固定 MoonBit/Node.js 签名向量、拒绝路径、schema 升级和租户级保留策略；指定专用 PostgreSQL 测试库后运行 `node scripts/platform-showcase.mjs` 验证失效接管、接收方验签和合成批量耗时；CI 的 `deployment` 作业验证容器化完整闭环及恢复。验收人记录所用提交、测试环境、测试通过/失败、合成事件数与局限，参考[季度证据页](QUARTERLY_EVIDENCE.md)。这些结果不能填写在上面的“真实试用”栏，也不能据此声称已完成长时间生产压测。
+
+真实试点仍需外部接收系统所有者授权。取得授权后再补：双方确认的验收阈值、端点/网络边界、持久去重实现、按业务周期的记录、备份删除政策和可公开范围。未经授权不进行真实外部投递。

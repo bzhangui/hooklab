@@ -17,7 +17,8 @@ implied capability of the current release.
 - [x] Rule-based transforms with explicit size and execution budgets
 - [x] Per-target concurrency and rate limits
 - [x] Circuit breaking and delivery latency histograms
-- [ ] Export/import and retention controls
+- [x] Preview-first PostgreSQL tenant event retention batches
+- [ ] General export/import and SQLite retention controls
 
 ## 0.4 — Transactional adapters
 
@@ -36,7 +37,8 @@ implied capability of the current release.
 - [x] Authenticated event publication API and provider-neutral signing
 - [x] Tenant-scoped consumer management and authenticated RBAC control plane
 - [x] Consumer portal for delivery history and secret rotation
-- [ ] SDKs and conformance fixtures
+- [x] Node.js receiver verifier, loopback example and MoonBit signature conformance vector
+- [ ] Other-language SDKs and a durable consumer sample
 
 ## 1.0 — Production hardening
 
@@ -44,7 +46,8 @@ implied capability of the current release.
 - [x] Role-based access and audit trail
 - [ ] Database-level row security and external identity integration
 - [ ] General cross-instance request/byte quotas and rate limiting (hourly accepted-event cap is implemented)
-- [ ] SQLite-to-PostgreSQL data migration and schema upgrade tooling
+- [x] Gated PostgreSQL v1-to-v2 additive schema migration and tenant-scoped retention batches
+- [ ] SQLite-to-PostgreSQL data migration, export/import and general schema upgrade tooling
 - High-availability deployment guide
 - Compatibility and performance baselines
 - Stable API and upgrade policy

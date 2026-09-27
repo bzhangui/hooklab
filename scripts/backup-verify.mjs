@@ -58,7 +58,7 @@ try {
   const result = await database(['psql', '-U', 'hooklab', '-d', tempDb, '-At', '-c',
     "SELECT (SELECT max(version) FROM hooklab_schema), (SELECT count(*) FROM pg_tables WHERE schemaname='public' AND tablename IN ('hooklab_schema','tenants','access_keys','applications','endpoints','subscriptions','event_contracts','events','deliveries','delivery_attempts','audit_entries','alerts')), (SELECT count(*) FROM tenants), (SELECT count(*) FROM events), (SELECT count(*) FROM endpoints), (SELECT count(*) FROM delivery_attempts)"]);
   const fields = result.split('|').map(Number);
-  if (fields.length !== 6 || fields[0] !== 1 || fields[1] !== 12 || fields.some(value => !Number.isInteger(value) || value < 0)) {
+  if (fields.length !== 6 || ![1, 2].includes(fields[0]) || fields[1] !== 12 || fields.some(value => !Number.isInteger(value) || value < 0)) {
     throw new Error('Restored database failed schema and count checks');
   }
   const ciphertext = await database(['psql', '-U', 'hooklab', '-d', tempDb, '-At', '-c',

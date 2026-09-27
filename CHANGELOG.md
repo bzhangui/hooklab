@@ -4,7 +4,23 @@ All notable changes are documented here. HookLab follows semantic versioning.
 
 ## Unreleased
 
-No changes since the release candidate below.
+### Added
+
+- Node.js receiver verifier with a MoonBit cross-language signature vector,
+  tamper/stale/ambiguous-header tests, a loopback example and containerized
+  delivery conformance checks. The example does not claim durable deduplication.
+- PostgreSQL v1-to-v2 additive retention index migration, gated for existing
+  databases by an explicit post-backup upgrade flag; read-only schema inspection.
+- Preview-first, tenant-scoped, bounded retention batches for old terminal
+  events and attempts. No live data was purged by this change.
+- Synthetic showcase now verifies signatures at the receiver and asserts one
+  unique accepted consumer ID across failover attempts.
+
+### Remaining limits
+
+- No authorized external pilot, long-duration production load test, published
+  npm SDK, general export/import, off-host backup automation or SQLite data
+  migration. The latest tagged release remains `0.3.0-rc.2`.
 
 ## 0.3.0-rc.2 — 2026-09-25
 
