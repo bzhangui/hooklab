@@ -4,57 +4,51 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="robots" content="noindex,nofollow">
-  <title>HookLab 消费者门户</title>
+  <meta name="theme-color" content="#101a2e">
+  <title>HookLab 消费者门户 · 事件交付工作台</title>
   <link rel="stylesheet" href="/portal.css">
   <script src="/portal.js" defer></script>
 </head>
 <body>
-  <header><h1>HookLab</h1><p>事件交付 · 消费者门户</p></header>
-  <main>
-    <section class="panel">
-      <h2>连接租户</h2>
-      <p>使用租户 ID 和管理令牌。令牌仅保存在当前页面内存，刷新后需重新输入。</p>
-      <form id="connection"><label>租户 ID <input id="tenant" required autocomplete="off"></label>
-        <label>管理令牌 <input id="token" type="password" required autocomplete="off"></label>
-        <button type="submit">连接并刷新</button><button id="disconnect" type="button">断开</button></form>
-    </section>
-    <p id="notice" role="status" aria-live="polite"></p>
-    <div class="grid">
-      <section class="panel"><h2>24 小时 SLO</h2><pre id="slo">尚未连接</pre></section>
-      <section class="panel"><h2>告警</h2><pre id="alerts">尚未连接</pre></section>
-    </div>
-    <section class="panel"><h2>资源目录</h2><pre id="catalog">尚未连接</pre></section>
-    <div class="grid">
-      <section class="panel"><h2>最近事件</h2><pre id="events">尚未连接</pre></section>
-      <section class="panel"><h2>最近交付</h2><pre id="deliveries">尚未连接</pre></section>
-    </div>
-    <section class="panel">
-      <h2>事件处理时间线</h2>
-      <p>输入事件 ID 查看交付与尝试记录；结果不包含原始正文或密钥。</p>
-      <form id="timeline-form"><label>事件 ID <input id="timeline-id" required autocomplete="off"></label>
-        <button type="submit">查询</button></form>
-      <pre id="timeline" aria-live="polite"></pre>
-    </section>
-    <section class="panel">
-      <h2>资源管理</h2>
-      <p>创建和轮换时的令牌或签名密钥只显示一次；请立即安全保存。已有密钥不会在目录中回显。</p>
-      <form id="action">
-        <label>操作 <select id="operation">
-          <option value="applications">创建应用</option>
-          <option value="endpoints">创建端点</option>
-          <option value="subscriptions">创建订阅</option>
-          <option value="contracts">发布事件契约</option>
-          <option value="applications/rotate-token">轮换应用令牌</option>
-          <option value="endpoints/rotate-secret">轮换端点密钥</option>
-          <option value="deliveries/retry">重试死信</option>
-        </select></label>
-        <label>目标 ID（轮换与重试时填写） <input id="resource-id" autocomplete="off"></label>
-        <label>JSON 参数（创建时填写） <textarea id="input" rows="8" spellcheck="false">{"id":"orders"}</textarea></label>
-        <button type="submit">执行</button>
-      </form>
-      <pre id="action-result" aria-live="polite"></pre>
-    </section>
-  </main>
-  <footer>HookLab · 管理 API 不返回原始事件正文或持久化密钥。</footer>
+  <div class="app-shell">
+    <aside class="sidebar" aria-label="主导航">
+      <a class="brand" href="#overview" aria-label="HookLab 首页"><span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i><i></i></span><span><strong>HookLab</strong><small>EVENT DELIVERY</small></span></a>
+      <div class="sidebar-label">工作空间</div>
+      <nav class="nav-list" aria-label="页面分区">
+        <a href="#overview" data-label="总览" class="nav-link active"><span class="nav-icon" aria-hidden="true">◫</span>总览</a>
+        <a href="#event-section" data-label="事件记录" class="nav-link"><span class="nav-icon" aria-hidden="true">◎</span>事件记录</a>
+        <a href="#delivery-section" data-label="交付记录" class="nav-link"><span class="nav-icon" aria-hidden="true">↗</span>交付记录</a>
+        <a href="#integrations" data-label="集成资源" class="nav-link"><span class="nav-icon" aria-hidden="true">▦</span>集成资源</a>
+        <a href="#operations" data-label="资源操作" class="nav-link"><span class="nav-icon" aria-hidden="true">⚙</span>资源操作</a>
+      </nav>
+      <div class="sidebar-foot"><span class="live-dot" aria-hidden="true"></span><span id="sidebar-connection">尚未连接租户</span><small>管理令牌不会保存到浏览器存储</small></div>
+    </aside>
+
+    <main class="workspace">
+      <header class="topbar"><div class="breadcrumb">工作空间 <span>/</span> <strong id="breadcrumb-current">总览</strong></div><div class="top-actions"><span id="tenant-chip" class="tenant-chip">未连接</span><button id="refresh" class="button button-ghost" type="button" disabled>↻ <span>刷新数据</span></button></div></header>
+      <div class="content">
+        <section class="hero" id="overview" aria-labelledby="hero-title"><div class="hero-copy"><span class="eyebrow"><span class="hero-dot"></span> DELIVERY OPERATIONS</span><h1 id="hero-title">每一次事件交付，<br>都清晰可见。</h1><p>集中查看交付健康度、追踪事件流转，并安全管理接入资源。</p><a class="hero-link" href="#event-section">查看最近事件 <span aria-hidden="true">↗</span></a></div><div class="hero-graphic" aria-hidden="true"><div class="flow-node node-a">EVENT</div><div class="flow-line line-a"></div><div class="flow-node node-b">ROUTE</div><div class="flow-line line-b"></div><div class="flow-node node-c">DELIVERED <span>✓</span></div><div class="graphic-glow"></div></div></section>
+
+        <section class="connection-card" aria-labelledby="connection-title"><div class="section-icon">⌁</div><div class="connection-copy"><h2 id="connection-title">连接工作空间</h2><p>输入租户 ID 和令牌查看数据；刷新页面后需重新连接。</p></div><form id="connection" class="connection-form"><label>租户 ID<input id="tenant" required autocomplete="off" placeholder="例如 acme"></label><label>管理令牌<input id="token" type="password" required autocomplete="off" placeholder="输入仅本次会话使用的令牌"></label><button class="button button-primary" type="submit">连接租户 <span aria-hidden="true">→</span></button><button id="disconnect" class="button button-quiet" type="button" disabled>断开</button></form></section>
+        <p id="notice" class="notice" role="status" aria-live="polite" hidden></p>
+
+        <div class="section-heading"><div><span class="overline">HEALTH AT A GLANCE</span><h2>运行概览</h2></div><span id="updated-at" class="updated-at">等待连接</span></div>
+        <section class="metrics" aria-label="关键指标"><article class="metric-card"><div class="metric-label"><span>24 小时交付</span><span class="metric-symbol symbol-blue">↗</span></div><strong id="metric-total">—</strong><small>窗口内创建的交付</small></article><article class="metric-card"><div class="metric-label"><span>交付成功率</span><span class="metric-symbol symbol-green">✓</span></div><strong id="metric-success">—</strong><small>目标 99% · 含仍在排队的交付</small></article><article class="metric-card"><div class="metric-label"><span>死信交付</span><span class="metric-symbol symbol-orange">!</span></div><strong id="metric-dead">—</strong><small>需要检查或人工重试</small></article><article class="metric-card"><div class="metric-label"><span>最终交付 p95</span><span class="metric-symbol symbol-violet">◷</span></div><strong id="metric-latency">—</strong><small>仅统计已成功交付样本</small></article></section>
+
+        <div class="overview-grid"><section class="card health-card" aria-labelledby="health-title"><div class="card-head"><div><span class="overline">SERVICE LEVEL</span><h2 id="health-title">24 小时交付健康度</h2></div><span id="health-badge" class="pill pill-neutral">等待数据</span></div><div class="health-value"><strong id="health-rate">—</strong><span>成功交付 / 全部接收</span></div><div class="progress-track" role="progressbar" aria-label="交付成功率" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span id="health-progress"></span></div><div class="health-meta"><span id="health-breakdown">连接后显示交付状态</span><span>目标 ≥ 99%</span></div><div class="inline-note">无样本时不计算成功率；仍在队列中的交付计入分母。</div></section><section class="card alert-card" aria-labelledby="alert-title"><div class="card-head"><div><span class="overline">ATTENTION</span><h2 id="alert-title">需要关注</h2></div><span id="alert-count" class="count-badge">—</span></div><div id="alert-list" class="alert-list"><div class="empty-state"><span class="empty-icon">◎</span><strong>尚无可用数据</strong><p>连接租户后，这里会展示未解决的告警。</p></div></div></section></div>
+
+        <section class="card data-card" id="event-section" aria-labelledby="event-title"><div class="card-head"><div><span class="overline">EVENT STREAM</span><h2 id="event-title">最近事件</h2><p>快速定位事件，并查看它从接收到交付的完整轨迹。</p></div><span id="event-count" class="count-badge">—</span></div><div class="table-tools"><label class="search-box"><span aria-hidden="true">⌕</span><span class="sr-only">搜索事件</span><input id="event-search" type="search" placeholder="搜索事件 ID、类型或应用"></label><span class="table-limit">展示最近 100 条</span></div><div class="table-scroll"><table><thead><tr><th>事件类型 / ID</th><th>应用</th><th>来源</th><th>接收时间</th><th class="align-right">操作</th></tr></thead><tbody id="event-rows"><tr><td colspan="5" class="table-empty">连接租户后查看事件</td></tr></tbody></table></div></section>
+
+        <section class="card data-card" id="delivery-section" aria-labelledby="delivery-title"><div class="card-head"><div><span class="overline">DELIVERY LOG</span><h2 id="delivery-title">交付记录</h2><p>检查状态、尝试次数与目标端点；死信可在此发起重试。</p></div><span id="delivery-count" class="count-badge">—</span></div><div class="table-tools"><label class="search-box"><span aria-hidden="true">⌕</span><span class="sr-only">搜索交付</span><input id="delivery-search" type="search" placeholder="搜索交付 ID、事件 ID 或端点"></label><label class="filter-label"><span class="sr-only">筛选交付状态</span><select id="delivery-filter"><option value="all">全部状态</option><option value="pending">待交付</option><option value="in_flight">交付中</option><option value="delivered">已交付</option><option value="dead_lettered">死信</option></select></label></div><div class="table-scroll"><table><thead><tr><th>交付 ID</th><th>端点</th><th>状态</th><th>尝试</th><th>创建时间</th><th class="align-right">操作</th></tr></thead><tbody id="delivery-rows"><tr><td colspan="6" class="table-empty">连接租户后查看交付</td></tr></tbody></table></div></section>
+
+        <section class="card timeline-card" id="timeline-section" aria-labelledby="timeline-title"><div class="card-head"><div><span class="overline">TRACE AN EVENT</span><h2 id="timeline-title">事件轨迹</h2><p>只展示脱敏元数据、交付状态和尝试记录，不展示原始正文。</p></div></div><form id="timeline-form" class="timeline-form"><label><span class="sr-only">事件 ID</span><input id="timeline-id" required autocomplete="off" placeholder="粘贴事件 UUID，或从上方事件列表选择"></label><button class="button button-secondary" type="submit">查看轨迹</button></form><div id="timeline" class="timeline-result" aria-live="polite"><div class="empty-state compact"><span class="empty-icon">⌁</span><strong>尚未选择事件</strong><p>输入事件 ID，查看每次交付尝试的时间线。</p></div></div></section>
+
+        <section class="card resource-card" id="integrations" aria-labelledby="resource-title"><div class="card-head"><div><span class="overline">INTEGRATIONS</span><h2 id="resource-title">接入资源</h2><p>应用、端点、订阅和契约的当前目录；敏感密钥不会在此回显。</p></div></div><div class="resource-grid"><div class="resource-column"><div class="resource-heading"><span class="resource-icon icon-app">◈</span><h3>应用</h3><span id="app-count">—</span></div><div id="app-list" class="resource-list"><p class="muted">等待连接</p></div></div><div class="resource-column"><div class="resource-heading"><span class="resource-icon icon-endpoint">↗</span><h3>端点</h3><span id="endpoint-count">—</span></div><div id="endpoint-list" class="resource-list"><p class="muted">等待连接</p></div></div><div class="resource-column"><div class="resource-heading"><span class="resource-icon icon-sub">⇄</span><h3>订阅</h3><span id="subscription-count">—</span></div><div id="subscription-list" class="resource-list"><p class="muted">等待连接</p></div></div></div><div class="contract-line"><strong>活跃事件契约</strong><span id="contract-summary">连接后显示</span></div></section>
+
+        <section class="card operation-card" id="operations" aria-labelledby="operation-title"><div class="card-head"><div><span class="overline">MANAGE RESOURCES</span><h2 id="operation-title">资源操作</h2><p>创建接入资源、轮换凭据或重试死信。需要 Developer 或 Owner 权限。</p></div></div><div class="operation-layout"><div class="operation-intro"><span class="step-number">01 / 02</span><h3>选择操作与目标</h3><p>根据所选操作填写 JSON 参数。轮换与重试操作只需目标 ID，无需 JSON。</p><div class="security-note"><span aria-hidden="true">◇</span><div><strong>一次性凭据提醒</strong><p>新令牌或密钥只在响应中显示一次。请立即安全保存；断开后页面会清除结果。</p></div></div></div><form id="action" class="operation-form"><label>操作类型<select id="operation"><option value="applications">创建应用</option><option value="endpoints">创建端点</option><option value="subscriptions">创建订阅</option><option value="contracts">发布事件契约</option><option value="provider-credentials">保存提供方凭据</option><option value="applications/rotate-token">轮换应用令牌</option><option value="endpoints/rotate-secret">轮换端点密钥</option><option value="deliveries/retry">重试死信</option></select></label><p id="operation-hint" class="field-hint">创建应用时只需提供应用 ID。</p><label id="resource-id-field" hidden>目标 ID<input id="resource-id" autocomplete="off" placeholder="填写要轮换或重试的资源 ID"></label><div id="json-field"><div class="field-label"><label for="input">JSON 参数</label><button id="example" class="text-button" type="button">填入示例</button></div><textarea id="input" rows="6" spellcheck="false" placeholder="选择操作后填入相应 JSON 参数"></textarea></div><button class="button button-primary" type="submit">执行操作 <span aria-hidden="true">→</span></button></form></div><div id="action-result" class="action-result" aria-live="polite" hidden></div></section>
+      </div>
+      <footer><span><strong>HookLab</strong> · 面向 MoonBit 生态的事件交付平台</span><span>门户不显示原始事件正文或已保存的密钥</span></footer>
+    </main>
+  </div>
 </body>
 </html>

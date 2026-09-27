@@ -25,6 +25,8 @@ PostgreSQL 模式可选共享数据库的每租户小时事件、小时正文总
 
 安装 Docker Compose v2 和 Node.js 24+ 后，在仓库根目录运行 `npm run quickstart`：脚本生成 Git 忽略的私有 `.env`，构建应用并启动 PostgreSQL 与 HookLab，默认只开放 `http://127.0.0.1:8787/`。运行 `npm run backup:verify` 会把数据库备份恢复到隔离的临时数据库，检查数据结构和已存端点密钥；归档与私有校验清单保存在 `backups/`。复制备份后可用 `npm run backup:inspect -- <归档路径>` 离线核对归档与加密密钥。密钥须单独安全保管。完整边界见[部署说明](docs/DEPLOYMENT.md)和[恢复运行手册](docs/OPERATIONS.md)；真实用户试用尚未开展，需先按[授权试用清单](docs/PILOT.md)准备。
 
+PostgreSQL 模式的消费者门户现提供响应式工作台：交付健康度、告警、可搜索的事件/交付记录、事件轨迹、接入资源和操作入口。它是随本地服务提供的管理页面，**不是公开部署的网站**；访问前应按[平台使用说明](docs/PLATFORM.md)准备租户令牌，并仅在可信地址输入。令牌不写入浏览器存储。
+
 ## 季度评选：可复现的交付证据
 
 在专用 PostgreSQL 测试库运行 `TEST_DATABASE_URL=... node scripts/platform-showcase.mjs`，可复现“订单事件 → 仓库消费者”场景：非法事件被拒绝且不入库、Worker 处理途中被强制终止、另一实例在租约到期后接管同一交付，以及 32 条合成事件的本机耗时样本。脚本验证结果并输出 JSON；[演示与证据说明](docs/QUARTERLY_EVIDENCE.md)列出前提、观察点和不能从样本推出的生产结论。CI 会在真实 PostgreSQL 17 服务上执行这一脚本。演示不代表已有真实用户或生产部署。
