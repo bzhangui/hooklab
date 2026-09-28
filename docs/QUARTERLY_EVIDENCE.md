@@ -31,6 +31,8 @@ node scripts/platform-showcase.mjs
 
 历史样本：[2026-09-24 主分支 CI，提交 `80e78ea`](https://github.com/bzhangui/hooklab/actions/runs/36007818373)，运行环境为 GitHub Actions `ubuntu-24.04`、Node.js 24、PostgreSQL 17，模拟消费者在本机回环地址。非法事件未入库；故障前后同一投递 ID 被网络请求两次，接管后状态为 `delivered`，从强制终止到完成约 **30,138 ms**。随后 32 个并发发布请求的单次请求耗时 p50 为 **103 ms**、p95 为 **117 ms**，整批事件在 **322 ms** 内全部投递完成。此样本早于持久化 `interrupted` 尝试记录的实现；当前版本应以最新 CI 原始日志为准。以上是单次 CI 合成样本，不是容量上限、生产吞吐量或用户侧延迟保证。
 
+当前多轮样本：[2026-09-28 提交 `e6921f0` 的 CI](https://github.com/bzhangui/hooklab/actions/runs/36429210008)在隔离 PostgreSQL 17 服务重复完整数据库档三轮，18 个场景组全部通过。每轮 32 条合成订单事件的请求 p95 分别为 117、118、125 ms；整批完成分别为 322、322、329 ms；强制故障后的租约接管分别为 30,100、30,098、30,104 ms。上述数据来自 `simulated-pilot-summary` artifact，包含默认租约等待与 CI 噪声，仅可作为回归对照，不能替代真实生产压测或对外服务承诺。
+
 ## MoonBit 与 Node.js 的实际职责
 
 | 环节 | 主要实现 | 可核查位置 |

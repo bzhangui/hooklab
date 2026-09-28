@@ -9,8 +9,8 @@
 | 结构与声明功能 | `README.md` 的项目结构、`docs/ARCHITECTURE.md`、网关和 PostgreSQL 端到端测试 |
 | README 可安装、可使用、可复现 | `README.md` 的本机快速启动、CLI 示例和验证命令；`docs/DEPLOYMENT.md`、`docs/PLATFORM.md` |
 | CI 检查、构建、测试 | `.github/workflows/ci.yml`：四目标格式/检查/单测/构建、选定核心包覆盖率门槛、Windows 演示、公开包独立安装、网关与 PostgreSQL 集成、容器部署和恢复 |
-| 可运行示例 | [评审快速上手](REVIEWER_QUICKSTART.md)、`scripts/demo.sh` / `scripts/demo.ps1`、`examples/`、`scripts/platform-showcase.mjs` |
-| 核心路径测试 | `moon test --target all --deny-warn`、`node scripts/check-core-coverage.mjs`、`npm run test:platform`、网关和 PostgreSQL 端到端脚本；生产试点不在已有证据内 |
+| 可运行示例 | [公开的合成交互页](https://bzhangui.github.io/hooklab/)、[评审快速上手](REVIEWER_QUICKSTART.md)、`scripts/demo.sh` / `scripts/demo.ps1`、`examples/`、`scripts/platform-showcase.mjs`；静态页面不等于运行后端 |
+| 核心路径测试 | `moon test --target all --deny-warn`、`node scripts/check-core-coverage.mjs`、`npm run test:platform`、网关和 PostgreSQL 端到端脚本、[多角色合成试点](SIMULATED_PILOT.md)；生产试点不在已有证据内 |
 | 发布到 mooncakes.io | **已完成**：[公开模块页](https://mooncakes.io/docs/bzhangui/hooklab)；`moon view bzhangui/hooklab --json` 可查最新版本、MIT 许可证和仓库地址；`node scripts/mooncakes-smoke.mjs` 在独立新项目安装并调用 `hooklab/crypto` |
 | OSI 许可证与第三方兼容 | 根目录 `LICENSE` (MIT)、`moon.mod` 的 MIT 字段和 `THIRD_PARTY_NOTICES.md` |
 
@@ -32,6 +32,8 @@ node scripts/check-package-contents.mjs
 ```
 
 最后一条命令调用 `moon package --list --frozen` 并拒绝把申报材料、`.env`、备份或依赖目录装入公开归档。不要把真实密钥、回调正文或数据库归档提交到 GitHub 或 Mooncakes。
+
+新增范围在[提交 `e6921f0` 的五作业 CI](https://github.com/bzhangui/hooklab/actions/runs/36429210008)通过：Linux 完整检查、Windows 冒烟、隔离容器部署与备份恢复、已发布包的独立安装，以及三轮多角色合成档。CI 通过不表示真实外部用户试点、公网安全审计或长时生产稳定性已经完成。
 
 ## 发布与独立安装核验
 
