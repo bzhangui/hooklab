@@ -37,8 +37,8 @@ node scripts/check-package-contents.mjs
 
 ## 发布与独立安装核验
 
-账号 `bzhangui` 已完成注册。`0.3.0-rc.4` 于 2026-09-28 发布：`moon publish --frozen` 返回 `200 OK`；独立执行 `moon view bzhangui/hooklab@0.3.0-rc.4 --json` 返回 `status: success`，MIT 许可证及 GitHub 仓库链接均正确。对应的 [GitHub 发布标签](https://github.com/bzhangui/hooklab/releases/tag/v0.3.0-rc.4) 指向通过[四组 CI 检查](https://github.com/bzhangui/hooklab/actions/runs/36423721217)的源码提交。不要将 `~/.moon/credentials.json`、登录令牌或任何授权码提交、上传或分享。
+账号 `bzhangui` 已完成注册。当前 `0.3.0-rc.5` 于 2026-09-28 发布：`moon publish --frozen` 返回 `200 OK`；`moon view bzhangui/hooklab@0.3.0-rc.5 --json` 返回 `status: success`、MIT 许可证和正确的 GitHub 仓库地址。[GitHub 预发布标签](https://github.com/bzhangui/hooklab/releases/tag/v0.3.0-rc.5)指向通过[五作业 CI](https://github.com/bzhangui/hooklab/actions/runs/36429819183)的 `04d0d08`。不要将 `~/.moon/credentials.json`、登录令牌或任何授权码提交、上传或分享。
 
-在隔离的新 MoonBit 项目中，`node scripts/mooncakes-smoke.mjs` 会查询最新公开版本并通过 `moon add` 下载；将 `"bzhangui/hooklab/hooklab/crypto" @crypto` 加入可执行包的 `moon.pkg`，在 `main.mbt` 中运行 `println(@crypto.sha256_hex("abc"))`，应输出 `ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad`，且 `moon check --target all --deny-warn` 通过。`0.3.0-rc.4` 的显式固定版本和默认最新版本均已复核通过。这验证了公开包可独立安装和调用，不等于完整 Node.js 平台服务已通过外部真实试点。
+在隔离的新 MoonBit 项目中，`node scripts/mooncakes-smoke.mjs` 会查询最新公开版本并通过 `moon add` 下载；将 `"bzhangui/hooklab/hooklab/crypto" @crypto` 加入可执行包的 `moon.pkg`，在 `main.mbt` 中运行 `println(@crypto.sha256_hex("abc"))`，应输出 `ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad`，且 `moon check --target all --deny-warn` 通过。`0.3.0-rc.5` 的显式固定版本已复核通过，CI 会持续验证它；这证明公开包可独立安装和调用，不等于完整 Node.js 平台服务已通过外部真实试点。
 
-Mooncakes 的 `rc.3` 历史归档是发布时快照，内含旧 README 的“尚未发布”描述；该描述已过时，不能通过改动 GitHub 上的 README 覆盖同一已发布版本。`rc.4` 归档及公开包页面已核对为正确的版本无关 README；页面另有“尚未发布到 npm”，指的是独立 Node.js SDK，不是 Mooncakes 包。每次发布必须递增 `moon.mod` 版本，并重复上述安全检查与独立安装核验。
+Mooncakes 的 `rc.3` 历史归档是发布时快照，内含旧 README 的“尚未发布”描述；该描述已过时，不能通过改动 GitHub 上的 README 覆盖同一已发布版本。`rc.4` 起改为版本无关 README；页面另有“尚未发布到 npm”，指的是独立 Node.js SDK，不是 Mooncakes 包。每次发布必须递增 `moon.mod` 版本，并重复上述安全检查与独立安装核验。
