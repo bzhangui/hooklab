@@ -118,7 +118,7 @@ jobs:
           curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash
           echo "$HOME/.moon/bin" >> "$GITHUB_PATH"
       - name: Install and call published package from a fresh project
-        run: node scripts/mooncakes-smoke.mjs 0.3.0-rc.3
+        run: node scripts/mooncakes-smoke.mjs 0.3.0-rc.4
 
   windows-smoke:
     runs-on: windows-2022
