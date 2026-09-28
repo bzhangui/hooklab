@@ -3,11 +3,14 @@ import fs from 'node:fs';
 import path from 'node:path';
 import {spawn} from 'node:child_process';
 import {pipeline} from 'node:stream/promises';
+import {dockerCommand, dockerEnvironment} from './docker-cli.mjs';
+import {restrictPrivatePath} from './private-path.mjs';
 
 const root = path.resolve(import.meta.dirname, '..');
+const dockerExecutable = dockerCommand();
 const envPath = path.join(root, '.env');
 if (!fs.existsSync(envPath)) throw new Error('Run npm run quickstart first; private .env is missing');
-const env = {...process.env};
+const env = {...dockerEnvironment(dockerExecutable)};
 for (const line of fs.readFileSync(envPath, 'utf8').split(/\r?\n/)) {
   const match = /^([A-Z_]+)=([A-Za-z0-9_-]+)$/.exec(line);
   if (match) env[match[1]] = match[2];
@@ -15,6 +18,7 @@ for (const line of fs.readFileSync(envPath, 'utf8').split(/\r?\n/)) {
 const tempDb = 'hooklab_restore_' + crypto.randomBytes(4).toString('hex');
 const backupDir = path.join(root, 'backups');
 fs.mkdirSync(backupDir, {recursive: true, mode: 0o700});
+restrictPrivatePath(backupDir);
 const stamp = new Date().toISOString().replace(/[:.]/g, '-');
 const archive = path.join(backupDir, 'hooklab-' + stamp + '-' + crypto.randomBytes(4).toString('hex') + '.dump');
 let created = false;
@@ -26,7 +30,7 @@ async function sha256File(file) {
 }
 
 async function database(args, options = {}) {
-  const child = spawn('docker', ['compose', 'exec', '-T', 'database', ...args],
+  const child = spawn(dockerExecutable, ['compose', 'exec', '-T', 'database', ...args],
     {cwd: root, env, stdio: ['pipe', 'pipe', 'pipe']});
   let stderr = '';
   let stdout = '';

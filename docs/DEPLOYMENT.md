@@ -10,7 +10,11 @@
 npm run quickstart
 ```
 
-命令先检查 Docker Compose，再创建被 Git 忽略的私有 `.env`（已有文件不会覆盖），生成独立的数据库密码、AES-256-GCM 加密密钥、引导令牌和指标令牌，然后构建 MoonBit JS 程序、启动 PostgreSQL 17 与 HookLab，并等待 `/health`。默认地址为 `http://127.0.0.1:8787/`；端口占用时可在 `.env` 修改 `HOOKLAB_PORT` 后重跑。命令不打印密钥；需要引导令牌时在可信本机查看 `.env`。Windows 上的文件权限仍取决于用户账户和磁盘 ACL，不要把 `.env` 放进共享目录。
+命令先检查 Docker Compose，再创建被 Git 忽略的私有 `.env`（已有文件不会覆盖），生成独立的数据库密码、AES-256-GCM 加密密钥、引导令牌和指标令牌，然后构建 MoonBit JS 程序、启动 PostgreSQL 17 与 HookLab，并等待 `/health`。默认地址为 `http://127.0.0.1:8787/`；端口占用时可在 `.env` 修改 `HOOKLAB_PORT` 后重跑。命令不打印密钥；需要引导令牌时在可信本机查看 `.env`。Windows 脚本会收紧私有文件及备份目录的 ACL，只允许当前用户、SYSTEM 和本机管理员访问；仍不要把它们放进共享目录或绕过操作系统账户保护。
+
+Windows 用户可安装用户级 Docker Desktop 并先启动其 Linux 容器引擎；脚本会识别默认的用户级安装目录，不要求重新打开终端才能找到 Docker。服务就绪后运行 `npm run local:workspace`，脚本会创建一个本机租户，并把一次性 Owner 令牌写入 Git 忽略的 `.env.portal-local`；重复运行只验证已有令牌，不覆盖它。用文件中的租户 ID 和令牌在门户连接。该明文文件只适合可信的个人电脑，不要提交、发送或截图公开；丢失后无法从数据库回读原令牌。
+
+若浏览器出现 `ERR_CONNECTION_REFUSED`，表示本机对应端口没有服务监听：先确认 Docker Desktop 已运行，再从仓库根目录执行 `npm run quickstart`，待其打印 `HookLab is ready` 后刷新页面。推送 GitHub 不会启动本机服务；`127.0.0.1` 在手机或其他电脑上指向那台设备自身，而不是运行 HookLab 的电脑。此试用部署只绑定本机回环地址，不应直接暴露公网。
 
 容器使用非 root Node 用户运行应用；数据库卷由 Compose 管理。`docker compose down` 停止服务但保留卷，**不要**在有数据时使用 `down --volumes`。源码归档、容器镜像和 PostgreSQL 卷都不包含 `.env` 的备份副本；丢失 `HOOKLAB_ENCRYPTION_KEY` 会使旧投递的密钥快照无法解密，必须将它与数据库备份分开、加密并限制访问。数据库本身保存事件正文，备份也应视为敏感数据。
 

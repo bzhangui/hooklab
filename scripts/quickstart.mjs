@@ -2,10 +2,14 @@ import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import {spawnSync} from 'node:child_process';
+import {dockerCommand, dockerEnvironment} from './docker-cli.mjs';
+import {restrictPrivatePath} from './private-path.mjs';
 
 const root = path.resolve(import.meta.dirname, '..');
 const envPath = path.join(root, '.env');
-const docker = spawnSync('docker', ['compose', 'version'], {cwd: root, stdio: 'ignore'});
+const dockerExecutable = dockerCommand();
+const docker = spawnSync(dockerExecutable, ['compose', 'version'],
+  {cwd: root, stdio: 'ignore', env: dockerEnvironment(dockerExecutable)});
 if (docker.status !== 0) {
   console.error('Docker Compose is required. No files were changed.');
   process.exit(1);
@@ -33,6 +37,7 @@ function validateEnv(env) {
 
 let env;
 if (fs.existsSync(envPath)) {
+  restrictPrivatePath(envPath);
   env = parseEnv(fs.readFileSync(envPath, 'utf8'));
 } else {
   env = {
@@ -42,13 +47,21 @@ if (fs.existsSync(envPath)) {
     HOOKLAB_METRICS_TOKEN: crypto.randomBytes(32).toString('base64url'),
     HOOKLAB_PORT: '8787',
   };
-  fs.writeFileSync(envPath, Object.entries(env).map(([key, value]) => key + '=' + value).join('\n') + '\n',
-    {flag: 'wx', mode: 0o600});
+  const privateFile = fs.openSync(envPath, 'wx', 0o600);
+  let saved = false;
+  try {
+    restrictPrivatePath(envPath);
+    fs.writeFileSync(privateFile, Object.entries(env).map(([key, value]) => key + '=' + value).join('\n') + '\n');
+    saved = true;
+  } finally {
+    fs.closeSync(privateFile);
+    if (!saved) fs.unlinkSync(envPath);
+  }
   console.log('Created private .env. Keep it out of Git and back up the encryption key securely.');
 }
 const port = validateEnv(env);
-const compose = spawnSync('docker', ['compose', 'up', '--build', '-d'],
-  {cwd: root, stdio: 'inherit', env: {...process.env, ...env}});
+const compose = spawnSync(dockerExecutable, ['compose', 'up', '--build', '-d'],
+  {cwd: root, stdio: 'inherit', env: {...dockerEnvironment(dockerExecutable), ...env}});
 if (compose.status !== 0) process.exit(compose.status || 1);
 
 let healthy = false;
