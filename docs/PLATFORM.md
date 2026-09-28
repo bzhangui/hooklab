@@ -72,7 +72,7 @@ curl -X POST http://127.0.0.1:8787/api/tenants/acme/provider-credentials \
 
 Worker 领取任务时先在同一数据库事务中记录 `in_flight` 尝试，完成后更新为 `delivered`、`scheduled` 或 `dead_lettered`。如果 Worker 崩溃并由另一个实例接管，旧记录标为 `interrupted`，新尝试另起一条。`interrupted` 只表示原 Worker 未留下终态，**不能证明请求一定已到达消费者**；也不能据此保证恰好一次交付。未结束与中断的尝试不计入耗时 p95/直方图，但中断数量出现在尝试结果指标和租户历史中。
 
-可选的跨实例租户额度：所有实例一致设置 `HOOKLAB_TENANT_HOURLY_EVENT_LIMIT=1000`、`HOOKLAB_TENANT_HOURLY_BYTE_LIMIT=10485760`、`HOOKLAB_TENANT_PENDING_LIMIT=10000`；均默认 `0`（关闭）。三者分别限制最近一小时已接受事件数、原始正文总字节和当前 `pending/scheduled/in_flight` 交付数。新事件在 PostgreSQL 同一租户事务锁下检查额度；达到额度时返回 429 `quota_exceeded`，不落事件、幂等键或交付；相同键与正文的重试仍返回 200，冲突正文仍返回 409。小时字节统计随历史事件数增长，需配合保留期与监控。它们**不限制管理请求、连接数、单租户端点数或瞬时 HTTP 请求率**，不能替代代理层限流和容量治理。
+可选的跨实例租户额度：所有实例一致设置 `HOOKLAB_TENANT_HOURLY_EVENT_LIMIT=1000`、`HOOKLAB_TENANT_HOURLY_BYTE_LIMIT=10485760`、`HOOKLAB_TENANT_PENDING_LIMIT=10000`；均默认 `0`（关闭）。三者分别限制最近一小时已接受事件数、原始正文总字节和当前 `pending/scheduled/in_flight` 交付数。新事件在 PostgreSQL 同一租户事务锁下检查额度；达到额度时返回 429 `quota_exceeded`，不落事件、幂等键或交付；相同键与正文的重试仍返回 200，冲突正文仍返回 409。小时字节统计随历史事件数增长，需配合保留期与监控。它们**不限制管理请求、连接数、单租户端点数或瞬时 HTTP 请求率**，不能替代代理层限流和容量治理。另可设置 `HOOKLAB_MAX_INFLIGHT_REQUESTS=100`，对单实例同时处理的 HTTP 请求提供 503/`Retry-After: 1` 过载保险丝；默认 0 关闭，其在途数与拒绝总数由 `/metrics` 暴露。这仍不是跨实例速率限制。
 
 ## 契约与 CloudEvents
 

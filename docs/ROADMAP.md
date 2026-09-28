@@ -3,6 +3,21 @@
 HookLab evolves in independently useful layers. A roadmap item is not an
 implied capability of the current release.
 
+The numbered sections below are **capability tracks**, not a claim that the
+Mooncakes pre-release number matches each heading. Current shipped status is
+tracked by [CHANGELOG](../CHANGELOG.md), [acceptance evidence](ACCEPTANCE.md)
+and [product-mode guide](PRODUCT_PATH.md).
+
+## Current controlled-trial increment (0.3.0-rc.5)
+
+- [x] Mooncakes core library, documented installation and CI across four targets
+- [x] Local PostgreSQL platform, SQLite gateway, receiver examples and recovery tests
+- [x] Six synthetic browser scenarios; no live API or user claims
+- [x] Multi-persona automated simulation with isolated database and bounded repeat option
+- [x] Optional single-process HTTP overload fuse and example TLS edge template
+- [ ] Authorized external-user pilot and publishable, consented feedback
+- [ ] Long-duration production capacity and cross-host disaster-recovery evidence
+
 ## 0.2 — Single-node event delivery platform
 
 - Authenticated provider ingress
@@ -55,4 +70,5 @@ implied capability of the current release.
 - [x] Redacted tenant event timeline and acceptance-to-final-delivery latency metrics
 - High-availability deployment guide
 - Compatibility and performance baselines
-- Stable API and upgrade policy
+- [x] Pre-release API and upgrade policy with explicit unsupported migrations
+- [ ] Stable 1.0 API and complete upgrade/rollback matrix

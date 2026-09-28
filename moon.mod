@@ -1,6 +1,6 @@
 name = "bzhangui/hooklab"
 
-version = "0.3.0-rc.4"
+version = "0.3.0-rc.5"
 
 readme = "README.md"
 

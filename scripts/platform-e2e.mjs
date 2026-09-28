@@ -231,7 +231,10 @@ try {
   const updatedSlo = await request(baseA, apiA + '/slo', 'GET', ownerA);
   assert.ok(updatedSlo.data.p95FinalDeliveryLatencyMs >= 0);
   const updatedMetrics = await fetch(baseA + '/metrics', {headers: {authorization: 'Bearer ' + metricsToken}});
-  assert.match(await updatedMetrics.text(), /hooklab_delivery_total_latency_ms_count/);
+  const metricsText = await updatedMetrics.text();
+  assert.match(metricsText, /hooklab_delivery_total_latency_ms_count/);
+  assert.match(metricsText, /hooklab_http_inflight_requests/);
+  assert.match(metricsText, /hooklab_http_overload_rejections_total/);
 
   slowGood = true;
   const burst = await Promise.all(Array.from({length: 12}, (_, index) => request(baseA, publishRoute, 'POST',

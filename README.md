@@ -10,6 +10,8 @@
 
 HookLab 是一个以 MoonBit 领域内核为基础的自托管 Webhook 安全与事件交付平台。它把最容易出事故的环节——**原始负载验签、时间窗校验、防重放、事务持久化、路由、受限转换、应用事件发布、出站签名、Worker 租约、可靠重试、死信与回放**——放进一条可测试、可运行的处理流水线。现有 SQLite 单机模式之外，项目新增 PostgreSQL 多租户应用事件交付模式。
 
+想先了解产品，可以打开[六场景交互演示](docs/index.html)：它只播放固定合成数据、不连接后端，不能代替真实试点。需要真正运行，请按[评审快速上手](docs/REVIEWER_QUICKSTART.md)在本机部署并执行[多角色合成试点](docs/SIMULATED_PILOT.md)。[模式选择与兼容策略](docs/PRODUCT_PATH.md)解释新项目为何优先采用 PostgreSQL 平台，以及 SQLite 历史转移的边界。
+
 它既适合比赛演示，也解决真实工程问题：第三方回调“为什么验签失败”、同一事件“为什么执行两次”、失败请求“如何安全复现”、下游暂时不可用“如何可靠重试”。MoonBit 领域代码可以编译到 JS、Wasm、Wasm-GC 和 Native；服务器适配器运行在 Node.js。
 
 ## 从 Mooncakes 使用 MoonBit 核心库
@@ -25,13 +27,13 @@ HookLab 是一个以 MoonBit 领域内核为基础的自托管 Webhook 安全与
 
 两种模式仍独立部署；`serve-platform` 现在可在同一 PostgreSQL 事件链路接入第三方提供方，但不会自动接管旧 SQLite 数据。受控的已结束历史事件导出/导入见[转移说明](docs/MIGRATION.md)，不迁移活动队列和密钥。运行命令、API、安全边界见[平台使用说明](docs/PLATFORM.md)，核心接口另有[机器可读描述](docs/openapi.json)。
 
-PostgreSQL 模式可选共享数据库的每租户小时事件、小时正文总字节、待处理交付额度；默认关闭。它们不等于通用请求/连接限流，公网前仍需可信代理和网络边界，见 [SECURITY.md](SECURITY.md)。
+PostgreSQL 模式可选共享数据库的每租户小时事件、小时正文总字节、待处理交付额度；默认关闭。另有可选的单进程 HTTP 在途请求保险丝 `HOOKLAB_MAX_INFLIGHT_REQUESTS`。这些都不等于跨实例通用请求/连接限流，公网前仍需可信 TLS 代理和网络边界，见 [SECURITY.md](SECURITY.md) 与[公网部署拦截项](docs/PRODUCTION_BOUNDARY.md)。
 
 ## 本机一键试用与备份验证
 
 安装 Docker Compose v2 和 Node.js 24+ 后，在仓库根目录运行 `npm run quickstart`：脚本生成 Git 忽略的私有 `.env`，构建应用并启动 PostgreSQL 与 HookLab，默认只开放 `http://127.0.0.1:8787/`。运行 `npm run backup:verify` 会把数据库备份恢复到隔离的临时数据库，检查数据结构和已存端点密钥；归档与私有校验清单保存在 `backups/`。复制备份后可用 `npm run backup:inspect -- <归档路径>` 离线核对归档与加密密钥。密钥须单独安全保管。完整边界见[部署说明](docs/DEPLOYMENT.md)和[恢复运行手册](docs/OPERATIONS.md)；真实用户试用尚未开展，需先按[授权试用清单](docs/PILOT.md)准备。
 
-PostgreSQL 模式的消费者门户现提供响应式工作台：交付健康度、告警、可搜索的事件/交付记录、事件轨迹、接入资源和操作入口。它是随本地服务提供的管理页面，**不是公开部署的网站**；访问前应按[平台使用说明](docs/PLATFORM.md)准备租户令牌，并仅在可信地址输入。令牌不写入浏览器存储。
+PostgreSQL 模式的消费者门户现提供响应式工作台：交付健康度、告警、可搜索的事件/交付记录、事件轨迹、接入资源和操作入口。三步接入引导显示应用、端点、订阅的现有数量，示例按钮只填入参数，不会自动提交。它是随本地服务提供的管理页面，**不是公开部署的网站**；访问前应按[平台使用说明](docs/PLATFORM.md)准备租户令牌，并仅在可信地址输入。令牌不写入浏览器存储。
 
 首次本机体验可在 `npm run quickstart` 成功后运行 `npm run local:workspace`。这会创建一个本机租户，把只显示一次的 Owner 令牌保存到被 Git 忽略的 `.env.portal-local`；在门户输入该文件中的租户 ID 和令牌即可连接。此文件是明文私有凭据，不要上传、截图分享或放入公共目录。重复运行只会验证已有凭据，不会覆盖。
 

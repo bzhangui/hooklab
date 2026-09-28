@@ -6,6 +6,7 @@ const http = require('node:http');
 const crypto = require('node:crypto');
 const {Pool} = require('pg');
 const {createWorker} = require('./worker.cjs');
+const {parseMaxInflight, createAdmission} = require('./admission.cjs');
 const core = require('./core.cjs');
 const {runMigrations, latestVersion} = require('./migrations.cjs');
 
@@ -92,6 +93,7 @@ async function startPlatform(options) {
   const pendingLimitText = process.env.HOOKLAB_TENANT_PENDING_LIMIT || '0';
   if (!/^(0|[1-9][0-9]{0,6})$/.test(pendingLimitText)) throw new Error('Invalid HOOKLAB_TENANT_PENDING_LIMIT');
   const pendingLimit = Number(pendingLimitText);
+  const maxInflight = parseMaxInflight(process.env.HOOKLAB_MAX_INFLIGHT_REQUESTS);
   const pool = new Pool({connectionString: process.env.DATABASE_URL, max: 12,
     connectionTimeoutMillis: 5000, idleTimeoutMillis: 30000});
   pool.on('error', error => console.error('HookLab PostgreSQL pool:', error));
@@ -556,7 +558,11 @@ async function startPlatform(options) {
       '# TYPE hooklab_backlog_oldest_age_seconds gauge', `hooklab_backlog_oldest_age_seconds ${backlog.rows[0].oldest_seconds}`,
       '# HELP hooklab_open_alerts Open local alert conditions', '# TYPE hooklab_open_alerts gauge',
       `hooklab_open_alerts ${openAlerts.rows[0].count}`);
-    lines.push('# HELP hooklab_worker_active Active deliveries in this process', '# TYPE hooklab_worker_active gauge', `hooklab_worker_active ${worker.active}`);
+    lines.push('# HELP hooklab_worker_active Active deliveries in this process', '# TYPE hooklab_worker_active gauge', `hooklab_worker_active ${worker.active}`,
+      '# HELP hooklab_http_inflight_requests Active HTTP requests in this process', '# TYPE hooklab_http_inflight_requests gauge',
+      `hooklab_http_inflight_requests ${admit.stats.active}`,
+      '# HELP hooklab_http_overload_rejections_total Requests rejected by the local overload fuse',
+      '# TYPE hooklab_http_overload_rejections_total counter', `hooklab_http_overload_rejections_total ${admit.stats.rejected}`);
     sendText(res, 200, lines.join('\n') + '\n', 'text/plain; version=0.0.4; charset=utf-8');
   }
 
@@ -601,7 +607,12 @@ async function startPlatform(options) {
     }
     return send(res, 404, {error: 'not_found'});
   };
+  const admit = createAdmission(maxInflight, res => {
+    res.setHeader('retry-after', '1');
+    send(res, 503, {error: 'overloaded'});
+  });
   const server = http.createServer((req, res) => {
+    if (!admit(res)) return;
     void handler(req, res).catch(error => {
       if (!error.status && statusByCode[error.message]) error = failure(error.message);
       if (!error.status && error.code !== '23505' && error.code !== '23503') console.error('HookLab platform request:', error);

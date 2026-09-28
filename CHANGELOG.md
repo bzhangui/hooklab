@@ -6,6 +6,28 @@ All notable changes are documented here. HookLab follows semantic versioning.
 
 No unreleased changes have been recorded yet.
 
+## 0.3.0-rc.5 — 2026-09-28
+
+### Added
+
+- A browser-only, six-scenario teaching showcase with no live API calls or
+  credentials; synthetic results are clearly distinguished from user evidence.
+- A three-step, non-submitting onboarding guide in the local tenant portal;
+  resource counts show progress and example buttons only prefill form fields.
+- A bounded multi-persona acceptance runner covering gateway, receiver, tenant,
+  quota, retry, failover and security paths. The local full profile creates its
+  own loopback PostgreSQL container; CI runs three independent database rounds
+  and uploads only a secret-free summary.
+- An optional per-process HTTP in-flight admission fuse with retryable 503s
+  and Prometheus counters, plus a TLS/rate-limiting reverse-proxy example.
+- Product-mode, compatibility and production-boundary documentation.
+
+### Limits
+
+- No authorized external user pilot, production soak, off-host disaster
+  recovery, database row-level security or zero-downtime active-queue migration.
+  The static showcase and synthetic tests must not be presented as substitutes.
+
 ## 0.3.0-rc.4 — 2026-09-28
 
 ### Documentation

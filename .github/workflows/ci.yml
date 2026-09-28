@@ -120,6 +120,48 @@ jobs:
       - name: Install and call published package from a fresh project
         run: node scripts/mooncakes-smoke.mjs 0.3.0-rc.4
 
+  simulated-pilot:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: hooklab_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d hooklab_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v5
+      - name: Use Node.js 24
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          package-manager-cache: false
+      - name: Install MoonBit
+        run: |
+          curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash
+          echo "$HOME/.moon/bin" >> "$GITHUB_PATH"
+      - name: Install platform adapter dependencies
+        run: npm ci --ignore-scripts
+      - name: Run disposable multi-persona acceptance
+        env:
+          TEST_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/hooklab_test
+        run: node scripts/simulated-pilot.mjs --profile full --repeat 3
+      - name: Upload synthetic-only summary
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: simulated-pilot-summary
+          path: target/simulated-pilot-report.json
+          if-no-files-found: warn
+
   windows-smoke:
     runs-on: windows-2022
     timeout-minutes: 15
@@ -162,6 +204,16 @@ jobs:
       COMPOSE_FILE: compose.yaml:compose.ci.yaml
     steps:
       - uses: actions/checkout@v5
+      - name: Parse example TLS edge configuration
+        run: |
+          set -euo pipefail
+          certdir="$(mktemp -d)"
+          openssl req -x509 -nodes -newkey rsa:2048 -days 1 \
+            -subj '/CN=hooklab.example.com' \
+            -keyout "$certdir/privkey.pem" -out "$certdir/fullchain.pem" >/dev/null 2>&1
+          docker run --rm \
+            -v "$PWD/ops/nginx-hooklab.conf.example:/etc/nginx/conf.d/hooklab.conf:ro" \
+            -v "$certdir:/etc/ssl/hooklab:ro" nginx:stable-alpine nginx -t
       - name: Use Node.js 24
         uses: actions/setup-node@v7
         with:

@@ -1,6 +1,8 @@
 # 本机试用部署与备份恢复
 
-本部署包用于个人试用、评审复现和受控试点。它不是公网生产部署方案：应用端口仅绑定宿主机 `127.0.0.1`，不提供 TLS 终止、跨实例全局配额、数据库级 RLS 或外部身份系统。请先阅读 [PLATFORM.md](PLATFORM.md) 与 [SECURITY.md](../SECURITY.md)。
+本部署包用于个人试用、评审复现和受控试点。它不是公网生产部署方案：应用端口仅绑定宿主机 `127.0.0.1`，不提供 TLS 终止、跨实例通用请求/连接限流、数据库级 RLS 或外部身份系统。请先阅读 [PLATFORM.md](PLATFORM.md) 与 [SECURITY.md](../SECURITY.md)。
+
+需要了解公网部署前仍缺什么，见[生产边界清单](PRODUCTION_BOUNDARY.md)。`HOOKLAB_MAX_INFLIGHT_REQUESTS` 可在私有 `.env` 中设置 1–99999 的单实例在途 HTTP 请求上限，超限返回 503 和 `Retry-After: 1`；默认 0 为关闭。它不是每秒速率限制，也不能代替可信 TLS 代理与多实例边缘限流。
 
 ## 一条命令启动
 

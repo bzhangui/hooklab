@@ -33,3 +33,13 @@ The report is a single-run regression sample, not a steady-state throughput,
 long-soak, external-network latency, or production SLO measurement. Compare
 numbers only on matched hardware, PostgreSQL, Node.js and MoonBit versions.
 No long-duration or authorized real-user performance result exists yet.
+
+## Bounded repeated synthetic acceptance
+
+The [multi-persona runner](docs/SIMULATED_PILOT.md) can repeat its dedicated
+PostgreSQL scenario up to 30 times. Each round checks tenant isolation,
+cross-instance quotas and forced-worker failover, then records only whitelisted
+synthetic timing numbers in `target/simulated-pilot-report.json`. The public CI
+uses three rounds. Compare p50/p95 only between matching CI runner, toolchain,
+database and revision; repeated loopback results still do not establish a
+production SLO, external-network latency or long-duration soak capacity.

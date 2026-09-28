@@ -100,6 +100,14 @@ input::placeholder, textarea::placeholder { color: #a4b1c3; }
 .metric-card small { display: block; margin-top: 7px; color: #9aa8ba; font-size: 10px; }
 .overview-grid { display: grid; grid-template-columns: minmax(0,1.12fr) minmax(300px,.88fr); gap: 17px; margin-bottom: 23px; }
 .card { padding: 23px; margin-bottom: 19px; scroll-margin-top: 22px; }
+.onboarding-card { background: linear-gradient(125deg,#fff 60%,#f3f7ff); }
+.onboarding-grid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 13px; }
+.onboarding-grid > div { min-width: 0; padding: 16px; border: 1px solid #e6ebf6; border-radius: 11px; background: #fff; }
+.onboarding-grid h3 { margin: 9px 0 5px; font-size: 13px; }
+.onboarding-grid p { min-height: 36px; margin: 0 0 14px; color: #7c8da6; font-size: 11px; }
+.onboarding-grid .button { max-width: 100%; white-space: normal; text-align: center; }
+.onboarding-state { color: #315ec8; font-size: 11px; font-weight: 800; }
+.onboarding-help { margin: 14px 0 0; color: #74849d; font-size: 11px; overflow-wrap: anywhere; }
 .overview-grid .card { margin: 0; min-height: 252px; }
 .card-head { display: flex; justify-content: space-between; align-items: start; gap: 12px; margin-bottom: 20px; }
 .card-head h2 { margin: 3px 0 0; font-size: 17px; letter-spacing: -.25px; }
@@ -245,7 +253,7 @@ footer strong { color: #637994; }
   .metrics { gap: 10px; }
   .metric-card { padding: 15px; min-height: 127px; }
   .metric-card strong { font-size: 24px; }
-  .overview-grid, .resource-grid, .operation-layout { grid-template-columns: 1fr; }
+  .overview-grid, .resource-grid, .operation-layout, .onboarding-grid { grid-template-columns: 1fr; }
   .card { padding: 18px; }
   .table-scroll { margin: 0 -18px; }
   th, td { padding-left: 17px; padding-right: 17px; }

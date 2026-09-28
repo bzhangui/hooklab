@@ -199,6 +199,10 @@ function renderResources(catalog) {
   }
   const active = (catalog.contracts || []).filter(item => item.active);
   setText('contract-summary', active.length ? active.length + ' 个活跃版本 · ' + active.slice(0, 3).map(item => item.event_type + ' v' + item.version).join('，') + (active.length > 3 ? ' 等' : '') : '暂无活跃契约');
+  for (const [key, id] of [['applications', 'onboarding-app-state'], ['endpoints', 'onboarding-endpoint-state'], ['subscriptions', 'onboarding-subscription-state']]) {
+    const count = Array.isArray(catalog[key]) ? catalog[key].length : 0;
+    setText(id, count ? '已创建 ' + count : '尚未创建');
+  }
 }
 function render() {
   renderSlo(snapshot.slo);
@@ -242,6 +246,7 @@ function reset() {
   empty(byId('delivery-rows'), '连接租户后查看交付', 6);
   setText('health-breakdown', '连接后显示交付状态');
   setText('contract-summary', '连接后显示');
+  for (const id of ['onboarding-app-state', 'onboarding-endpoint-state', 'onboarding-subscription-state']) setText(id, '待连接');
   setText('updated-at', '等待连接');
   byId('health-progress').style.width = '0%';
   byId('health-badge').className = 'pill pill-neutral';
@@ -344,6 +349,17 @@ byId('example').addEventListener('click', () => {
   byId('input').value = JSON.stringify(operations[byId('operation').value].sample, null, 2);
   byId('input').focus();
 });
+for (const button of document.querySelectorAll('.onboarding-example')) {
+  button.addEventListener('click', () => {
+    const operation = button.dataset.operation;
+    if (!Object.hasOwn(operations, operation) || !operations[operation].sample) return;
+    byId('operation').value = operation;
+    operationChanged();
+    byId('input').value = JSON.stringify(operations[operation].sample, null, 2);
+    byId('operations').scrollIntoView({behavior: 'smooth', block: 'start'});
+    notice('已填入示例，请核对并修改参数，再自行提交。');
+  });
+}
 byId('action').addEventListener('submit', async event => {
   event.preventDefault();
   if (!tenant || !token) return notice('请先连接租户', true);

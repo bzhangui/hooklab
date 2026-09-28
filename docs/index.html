@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="index,follow">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; base-uri 'none'; form-action 'none'; connect-src 'none'">
+  <title>HookLab · 事件交付交互演示</title>
+  <meta name="description" content="通过六个合成场景了解 HookLab 的验签、契约、可靠投递与租户隔离。演示不连接真实服务。">
+  <link rel="stylesheet" href="./showcase.css">
+  <link rel="stylesheet" href="./showcase-responsive.css">
+  <script type="module" src="./showcase.js"></script>
+</head>
+<body>
+  <header class="site-header"><a class="brand" href="https://github.com/bzhangui/hooklab" aria-label="HookLab GitHub 仓库"><span class="brand-icon" aria-hidden="true">H</span><span>HookLab<small>EVENT DELIVERY</small></span></a><nav aria-label="资源"><a href="https://github.com/bzhangui/hooklab/blob/main/docs/REVIEWER_QUICKSTART.md">快速上手</a><a href="https://github.com/bzhangui/hooklab">源代码 ↗</a></nav></header>
+  <main>
+    <section class="intro"><div><span class="eyebrow">INTERACTIVE SANDBOX · 合成模拟</span><h1>看见每一次事件<br><em>如何安全抵达。</em></h1><p>选择一个角色，播放 HookLab 的事件交付流程。这里的每一步都是固定的教学样例，不会向外发送请求，也不代表真实用户试点或生产性能。</p><div class="intro-links"><a class="primary-link" href="#simulator">开始体验 <span aria-hidden="true">↘</span></a><a href="https://github.com/bzhangui/hooklab/blob/main/docs/ACCEPTANCE.md">查看可复现实测证据</a></div></div><div class="intro-art" aria-hidden="true"><span class="art-node">PUBLISH</span><span class="art-line"></span><span class="art-node art-core">HOOKLAB</span><span class="art-line"></span><span class="art-node">RECEIVE</span><div class="art-glow"></div></div></section>
+    <section id="simulator" class="simulator" aria-labelledby="simulator-title"><div class="section-heading"><div><span class="eyebrow">SIX CONTROLLED SCENARIOS</span><h2 id="simulator-title">从不同角色理解交付结果</h2></div><span class="fixture-badge">仅合成数据 · 离线运行</span></div><div class="simulator-grid"><aside class="scenario-panel"><h3>选择场景</h3><div id="scenario-menu" class="scenario-menu" aria-label="模拟场景"></div></aside><div class="stage"><div class="stage-top"><div><span id="role" class="role-pill">发布方</span><h3 id="scenario-title">订单创建，正常送达</h3><p id="scenario-description"></p></div><span id="state" class="state idle">等待模拟</span></div><div class="stage-actions"><button id="play" class="play-button" type="button">▶ 播放流程</button><button id="reset" class="reset-button" type="button">重置</button><span id="progress" aria-live="polite">0 / 4 步</span></div><ol id="timeline" class="timeline" aria-live="polite"></ol><div class="metrics"><div><span>接受事件</span><strong id="accepted">—</strong></div><div><span>HTTP 尝试</span><strong id="attempts">—</strong></div><div><span>业务效果</span><strong id="effects">—</strong></div></div></div></div></section>
+    <section class="boundary"><div><span class="eyebrow">WHAT THIS IS / IS NOT</span><h2>可体验的流程，<br>不冒充真实部署。</h2></div><div><p>页面仅在浏览器中播放固定样例，不采集输入、不保存令牌、不连接 HookLab API。真实代码与测试可按仓库说明在自己的设备上复现。</p><p>HookLab 的实际交付语义是<strong>至少一次</strong>；接收系统必须按交付 ID 去重。公开试点和生产保障仍需授权、部署边界与长期验证。</p><a href="https://github.com/bzhangui/hooklab/blob/main/docs/REVIEWER_QUICKSTART.md">运行真实本机演示 ↗</a></div></section>
+  </main>
+  <footer><span>HookLab · MoonBit event delivery</span><span>公开源码 / MIT 许可 / 合成演示</span></footer>
+</body>
+</html>

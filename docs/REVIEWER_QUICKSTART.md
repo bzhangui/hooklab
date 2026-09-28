@@ -2,6 +2,8 @@
 
 本页只使用合成数据与本机回环地址。HookLab 的 MoonBit 核心库已发布到 Mooncakes；完整事件交付平台是需要自行部署的服务，不是公开网站或生产就绪服务。九项要求和证据入口见[验收清单](ACCEPTANCE.md)。
 
+无需安装即可阅读[交互式合成演示](index.html)；它仅在浏览器播放固定教学场景，不连接真实 HookLab 服务。要复核真实代码，请继续以下步骤。
+
 ## 1. 验证公开包可以独立安装（约 1 分钟）
 
 准备 MoonBit CLI 和 Node.js 24+，克隆仓库后在根目录运行：
@@ -22,4 +24,4 @@ Windows PowerShell：`./scripts/demo.ps1`；Linux/macOS：`bash scripts/demo.sh`
 
 ## 4. 查看自动化证据
 
-[GitHub Actions CI](https://github.com/bzhangui/hooklab/actions/workflows/ci.yml)运行四目标 MoonBit 格式/检查/构建/测试、选定核心包覆盖率门槛、PostgreSQL 双 Worker 与故障接管、容器备份恢复、Windows PowerShell 演示，以及新项目安装 Mooncakes 包的测试。覆盖率门槛针对九个确定性核心包，不代表服务端适配器或全仓库的总体覆盖率。可复现的合成交付流程见[季度评选证据](QUARTERLY_EVIDENCE.md)。目前没有可公开核实的真实外部试点或长期生产 SLO，不作相应宣称。
+[GitHub Actions CI](https://github.com/bzhangui/hooklab/actions/workflows/ci.yml)运行四目标 MoonBit 格式/检查/构建/测试、选定核心包覆盖率门槛、PostgreSQL 双 Worker 与故障接管、容器备份恢复、Windows PowerShell 演示，以及新项目安装 Mooncakes 包的测试。独立的合成试点作业覆盖多角色与故障路径，输出不含密钥的摘要，运行方法见[合成试点说明](SIMULATED_PILOT.md)。覆盖率门槛针对九个确定性核心包，不代表服务端适配器或全仓库的总体覆盖率。可复现的合成交付流程见[季度评选证据](QUARTERLY_EVIDENCE.md)。目前没有可公开核实的真实外部试点或长期生产 SLO，不作相应宣称。

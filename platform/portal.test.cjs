@@ -65,16 +65,37 @@ function portalHarness() {
     if (result === undefined) return {ok: false, status: 404, json: async () => ({error: 'not_found'})};
     return {ok: true, status: 200, json: async () => result};
   };
+  const buttons = ['applications', 'endpoints', 'subscriptions'].map(operation => {
+    const button = new Element('button');
+    button.dataset = {operation};
+    return button;
+  });
   const document = {
     getElementById: get,
     createElement: tag => new Element(tag),
     querySelector: selector => get(selector),
-    querySelectorAll: () => [],
+    querySelectorAll: selector => selector === '.onboarding-example' ? buttons : [],
   };
   const source = fs.readFileSync(path.join(__dirname, 'portal.js'), 'utf8');
   vm.runInNewContext(source, {document, fetch, window: {confirm: () => true}}, {filename: 'portal.js'});
-  return {get, fetched, eventId};
+  return {get, fetched, eventId, buttons};
 }
+
+test('onboarding reflects catalog and only prefills operations', async () => {
+  const {get, fetched, buttons} = portalHarness();
+  get('tenant').value = 'demo';
+  get('token').value = 'private-admin-token';
+  await get('connection').dispatch('submit');
+  assert.equal(get('onboarding-app-state').textContent, '已创建 1');
+  assert.equal(get('onboarding-endpoint-state').textContent, '已创建 1');
+  assert.equal(get('onboarding-subscription-state').textContent, '尚未创建');
+  buttons[2].dispatch('click');
+  assert.equal(get('operation').value, 'subscriptions');
+  assert.match(get('input').value, /orders-billing/);
+  assert.equal(fetched.filter(call => call.options.method === 'POST').length, 0);
+  get('disconnect').dispatch('click');
+  assert.equal(get('onboarding-app-state').textContent, '待连接');
+});
 
 test('portal connects, renders operational data, filters rows and clears one-time credentials', async () => {
   const {get, fetched} = portalHarness();
