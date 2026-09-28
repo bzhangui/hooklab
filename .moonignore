@@ -1,0 +1,23 @@
+# Mooncakes archive rules. Unlike Git, Moon ignores .gitignore once this file exists.
+/_build/
+/target/
+/node_modules/
+/.mooncakes/
+/.hooklab-data/
+/backups/
+*.sqlite
+*.sqlite-wal
+*.sqlite-shm
+*.dump
+*.bak
+*.backup
+*.hooklab-transfer.json
+diagnosis.html
+*.log
+.env
+.env.*
+!.env.example
+.DS_Store
+
+# Contest application materials are not part of the distributable module.
+/项目申报书.md

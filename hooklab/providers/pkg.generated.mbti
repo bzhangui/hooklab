@@ -1,8 +1,8 @@
 // Generated using `moon info`, DON'T EDIT IT
-package "hooklab/hooklab/hooklab/providers"
+package "bzhangui/hooklab/hooklab/providers"
 
 import {
-  "hooklab/hooklab/hooklab/core",
+  "bzhangui/hooklab/hooklab/core",
 }
 
 // Values

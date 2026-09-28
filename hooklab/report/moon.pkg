@@ -1,5 +1,5 @@
 import {
-  "hooklab/hooklab/hooklab/core",
-  "hooklab/hooklab/hooklab/engine",
-  "hooklab/hooklab/hooklab/pipeline",
+  "bzhangui/hooklab/hooklab/core",
+  "bzhangui/hooklab/hooklab/engine",
+  "bzhangui/hooklab/hooklab/pipeline",
 }

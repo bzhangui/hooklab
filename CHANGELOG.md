@@ -6,6 +6,10 @@ All notable changes are documented here. HookLab follows semantic versioning.
 
 ### Added
 
+- Prepared the `bzhangui/hooklab` Mooncakes module as a `0.3.0-rc.3` candidate;
+  the compiler minimum is enforced in CI and the archive is checked to exclude
+  private application materials, credentials and backups. Registry publication
+  remains pending account registration and authentication.
 - PostgreSQL v3 provider-ingress credentials and MoonBit signature verification
   now route authenticated third-party callbacks through the same tenant event,
   subscription, signing and worker pipeline; invalid requests have no writes.

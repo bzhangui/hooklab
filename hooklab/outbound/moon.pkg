@@ -1,4 +1,4 @@
 import {
-  "hooklab/hooklab/hooklab/core",
-  "hooklab/hooklab/hooklab/crypto",
+  "bzhangui/hooklab/hooklab/core",
+  "bzhangui/hooklab/hooklab/crypto",
 }

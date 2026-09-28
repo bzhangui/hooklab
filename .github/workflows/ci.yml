@@ -40,6 +40,8 @@ jobs:
         run: npm ci --ignore-scripts
       - name: Toolchain
         run: moon version --all
+      - name: Require moonc 0.10.14 or newer
+        run: node scripts/check-moonc-version.mjs
       - name: Format
         run: moon fmt --check
       - name: Check
@@ -48,6 +50,8 @@ jobs:
         run: moon test --target all --deny-warn
       - name: Build
         run: moon build --target all --deny-warn
+      - name: Verify Mooncakes archive excludes private files
+        run: node scripts/check-package-contents.mjs
       - name: CLI demo
         timeout-minutes: 2
         run: bash scripts/demo.sh

@@ -1,5 +1,5 @@
 // Generated using `moon info`, DON'T EDIT IT
-package "hooklab/hooklab/hooklab/crypto"
+package "bzhangui/hooklab/hooklab/crypto"
 
 // Values
 pub fn bytes_to_hex(Bytes) -> String

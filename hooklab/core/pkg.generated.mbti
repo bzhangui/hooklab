@@ -1,5 +1,5 @@
 // Generated using `moon info`, DON'T EDIT IT
-package "hooklab/hooklab/hooklab/core"
+package "bzhangui/hooklab/hooklab/core"
 
 import {
   "moonbitlang/core/debug",

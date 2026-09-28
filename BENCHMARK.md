@@ -9,7 +9,7 @@ The bundled benchmark parses a representative nested JSON event and evaluates
 three routing rules, including an array path.
 
 ~~~bash
-moon bench --target native --release -p hooklab/hooklab/hooklab/engine
+moon bench --target native --release -p bzhangui/hooklab/hooklab/engine
 ~~~
 
 Local reference run on 14 September 2026:

@@ -1,5 +1,5 @@
 import {
-  "hooklab/hooklab/hooklab/core",
+  "bzhangui/hooklab/hooklab/core",
   "moonbitlang/core/bench",
   "moonbitlang/core/json",
   "moonbitlang/core/string",

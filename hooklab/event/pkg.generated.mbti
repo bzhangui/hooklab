@@ -1,8 +1,8 @@
 // Generated using `moon info`, DON'T EDIT IT
-package "hooklab/hooklab/hooklab/event"
+package "bzhangui/hooklab/hooklab/event"
 
 import {
-  "hooklab/hooklab/hooklab/core",
+  "bzhangui/hooklab/hooklab/core",
   "moonbitlang/core/debug",
 }
 

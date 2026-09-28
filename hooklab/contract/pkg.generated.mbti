@@ -1,13 +1,17 @@
 // Generated using `moon info`, DON'T EDIT IT
-package "hooklab/hooklab/hooklab/contract"
+package "bzhangui/hooklab/hooklab/contract"
 
 import {
-  "hooklab/hooklab/hooklab/core",
+  "bzhangui/hooklab/hooklab/core",
   "moonbitlang/core/debug",
 }
 
 // Values
+pub fn schema_compatible_json(String, String) -> Bool
+
 pub fn validate(@core.WebhookRequest, String, WebhookContract) -> ContractResult
+
+pub fn validate_event_json(String, String, String, String, Bool) -> Array[ContractIssue]
 
 // Errors
 
