@@ -1,16 +1,20 @@
 # HookLab
 
-最近标记版本：`0.3.0-rc.2`；当前源码与包清单准备的是 `0.3.0-rc.3` 候选版，尚未声明已发布到 Mooncakes，也不构成生产就绪承诺。
+Mooncakes 已发布 [`bzhangui/hooklab@0.3.0-rc.3`](https://mooncakes.io/docs/bzhangui/hooklab)（2026-09-28）；最近的 Git 标签仍是 `0.3.0-rc.2`。这是可安装的 MoonBit 模块，不代表平台已公开托管或达到生产就绪。
 
 [![CI](https://github.com/bzhangui/hooklab/actions/workflows/ci.yml/badge.svg)](https://github.com/bzhangui/hooklab/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![MoonBit](https://img.shields.io/badge/MoonBit-JS%20%7C%20Wasm%20%7C%20Native-blue)](https://www.moonbitlang.com/)
 
-验收要求 `moonc >= 0.10.14`。运行 `moon version --all` 和 `node scripts/check-moonc-version.mjs` 可核对本机版本；CI 也强制执行同一版本门槛。九项验收材料和 Mooncakes 发布前检查见[验收清单](docs/ACCEPTANCE.md)。当前模块名为 `bzhangui/hooklab`，只有完成相同用户名的 Mooncakes 账号注册、登录和实际发布后，才能把第 8 项标为通过。
+验收要求 `moonc >= 0.10.14`。运行 `moon version --all` 和 `node scripts/check-moonc-version.mjs` 可核对本机版本；CI 也强制执行同一版本门槛。九项验收材料、发布记录与独立安装验证见[验收清单](docs/ACCEPTANCE.md)。
 
 HookLab 是一个以 MoonBit 领域内核为基础的自托管 Webhook 安全与事件交付平台。它把最容易出事故的环节——**原始负载验签、时间窗校验、防重放、事务持久化、路由、受限转换、应用事件发布、出站签名、Worker 租约、可靠重试、死信与回放**——放进一条可测试、可运行的处理流水线。现有 SQLite 单机模式之外，项目新增 PostgreSQL 多租户应用事件交付模式。
 
 它既适合比赛演示，也解决真实工程问题：第三方回调“为什么验签失败”、同一事件“为什么执行两次”、失败请求“如何安全复现”、下游暂时不可用“如何可靠重试”。MoonBit 领域代码可以编译到 JS、Wasm、Wasm-GC 和 Native；服务器适配器运行在 Node.js。
+
+## 从 Mooncakes 使用 MoonBit 核心库
+
+在一个新的 MoonBit 项目中运行 `moon add bzhangui/hooklab@0.3.0-rc.3`。例如，在可执行包的 `moon.pkg` 中引入 `"bzhangui/hooklab/hooklab/crypto" @crypto`，再调用 `@crypto.sha256_hex("abc")`，运行结果应为 `ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad`。这条独立安装与调用路径已验证；完整的自托管事件交付服务仍按下文从仓库源码部署，不能只靠 `moon add` 启动。已发布的 `rc.3` 归档保留了发布前的 README 快照，其中“尚未发布”的文字已经过时；以本仓库的当前说明和注册表版本记录为准，后续版本会修正归档中的文案。
 
 ## 两种运行模式
 

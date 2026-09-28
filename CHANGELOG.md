@@ -4,12 +4,22 @@ All notable changes are documented here. HookLab follows semantic versioning.
 
 ## Unreleased
 
+### Documentation
+
+- Corrected the repository README and acceptance record after the Mooncakes
+  publication; the `0.3.0-rc.3` registry archive remains an immutable snapshot
+  with the older README and will be corrected in a later version.
+
+## 0.3.0-rc.3 — 2026-09-28
+
 ### Added
 
-- Prepared the `bzhangui/hooklab` Mooncakes module as a `0.3.0-rc.3` candidate;
-  the compiler minimum is enforced in CI and the archive is checked to exclude
-  private application materials, credentials and backups. Registry publication
-  remains pending account registration and authentication.
+- Published `bzhangui/hooklab@0.3.0-rc.3` to Mooncakes on 2026-09-28;
+  independently verified the public registry metadata and a fresh consumer
+  project importing and calling `hooklab/crypto`. CI enforces the compiler
+  minimum and package checks exclude private application materials,
+  credentials and backups. The published archive retains its pre-release
+  README snapshot; the next version should include this corrected notice.
 - PostgreSQL v3 provider-ingress credentials and MoonBit signature verification
   now route authenticated third-party callbacks through the same tenant event,
   subscription, signing and worker pipeline; invalid requests have no writes.
