@@ -4,11 +4,15 @@ All notable changes are documented here. HookLab follows semantic versioning.
 
 ## Unreleased
 
+No unreleased changes have been recorded yet.
+
+## 0.3.0-rc.4 — 2026-09-28
+
 ### Documentation
 
-- Corrected the repository README and acceptance record after the Mooncakes
-  publication; the `0.3.0-rc.3` registry archive remains an immutable snapshot
-  with the older README and will be corrected in a later version.
+- Corrected the Mooncakes package README snapshot after the `0.3.0-rc.3`
+  archive shipped with an obsolete pre-publication statement. Package usage
+  now points to a fresh-consumer check of the latest registry version.
 - Added a one-page reviewer path for independent package installation, CLI
   demonstration, local platform startup and CI evidence.
 
@@ -54,7 +58,8 @@ All notable changes are documented here. HookLab follows semantic versioning.
 
 - No authorized external pilot, long-duration production load test, published
   npm SDK, live SQLite queue migration, general export/import or off-host
-  backup automation. The latest tagged release remains `0.3.0-rc.2`.
+  backup automation. At the time of `0.3.0-rc.3`, the latest tagged release
+  remained `0.3.0-rc.2`.
 
 ## 0.3.0-rc.2 — 2026-09-25
 

@@ -7,10 +7,10 @@
 准备 MoonBit CLI 和 Node.js 24+，克隆仓库后在根目录运行：
 
 ```bash
-node scripts/mooncakes-smoke.mjs 0.3.0-rc.3
+node scripts/mooncakes-smoke.mjs
 ```
 
-脚本在系统临时目录创建全新 MoonBit 项目，通过 `moon add` 下载指定的公开版本，导入 `bzhangui/hooklab/hooklab/crypto`，跨目标检查并调用 SHA-256。应输出 `Mooncakes consumer passed`；脚本只清理自己创建的临时目录。使用更新版本时，将命令末尾替换为[注册表](https://mooncakes.io/docs/bzhangui/hooklab)中实际存在的版本号。
+脚本先查询[注册表](https://mooncakes.io/docs/bzhangui/hooklab)的最新公开版本，再在系统临时目录创建全新 MoonBit 项目，通过 `moon add` 下载该版本，导入 `bzhangui/hooklab/hooklab/crypto`，跨目标检查并调用 SHA-256。应输出 `Mooncakes consumer passed`；脚本只清理自己创建的临时目录。需要复核指定版本时，可在命令末尾加版本号。
 
 ## 2. 运行源码 CLI 演示（约 1 分钟）
 

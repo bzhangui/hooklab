@@ -3,11 +3,6 @@ import {basename, dirname, join} from 'node:path';
 import {mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 
-const version = process.argv[2] ?? '0.3.0-rc.3';
-if (!/^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/.test(version)) {
-  throw new Error('Expected a concrete Mooncakes version such as 0.3.0-rc.3');
-}
-
 const temporaryParent = realpathSync(tmpdir());
 const smokeRoot = mkdtempSync(join(temporaryParent, 'hooklab-mooncakes-'));
 const expected = 'ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad';
@@ -25,6 +20,17 @@ function moon(...args) {
 }
 
 try {
+  const registryVersion = () => {
+    const response = JSON.parse(moon('view', 'bzhangui/hooklab', '--json'));
+    if (response.status !== 'success' || !response.result?.latest_version) {
+      throw new Error('Mooncakes did not return the latest published HookLab version');
+    }
+    return response.result.latest_version;
+  };
+  const version = process.argv[2] ?? registryVersion();
+  if (!/^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/.test(version)) {
+    throw new Error('Expected a concrete Mooncakes version such as 0.3.0-rc.4');
+  }
   mkdirSync(join(smokeRoot, 'cmd', 'main'), {recursive: true});
   writeFileSync(join(smokeRoot, 'moon.mod'), [
     'name = "bzhangui/hooklab-registry-smoke"',

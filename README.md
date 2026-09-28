@@ -14,7 +14,7 @@ HookLab 是一个以 MoonBit 领域内核为基础的自托管 Webhook 安全与
 
 ## 从 Mooncakes 使用 MoonBit 核心库
 
-在一个新的 MoonBit 项目中运行 `moon add bzhangui/hooklab`，或从注册表选定版本后显式固定 `@版本号`。例如，在可执行包的 `moon.pkg` 中引入 `"bzhangui/hooklab/hooklab/crypto" @crypto`，再调用 `@crypto.sha256_hex("abc")`，运行结果应为 `ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad`。可用 `node scripts/mooncakes-smoke.mjs 0.3.0-rc.3` 在隔离的新项目中自动复核已发布版本。完整的自托管事件交付服务仍按下文从仓库源码部署，不能只靠 `moon add` 启动。
+在一个新的 MoonBit 项目中运行 `moon add bzhangui/hooklab`，或从注册表选定版本后显式固定 `@版本号`。例如，在可执行包的 `moon.pkg` 中引入 `"bzhangui/hooklab/hooklab/crypto" @crypto`，再调用 `@crypto.sha256_hex("abc")`，运行结果应为 `ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad`。可用 `node scripts/mooncakes-smoke.mjs` 在隔离的新项目中自动复核注册表最新版本，也可在命令末尾传入具体版本号。完整的自托管事件交付服务仍按下文从仓库源码部署，不能只靠 `moon add` 启动。
 
 ## 两种运行模式
 
