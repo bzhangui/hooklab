@@ -23,8 +23,23 @@ test "HMAC-SHA256 RFC 4231 compatible vector" {
 }
 
 ///|
+test "HMAC-SHA256 RFC 4231 long key is hashed before use" {
+  let key = Bytes::makei(131, fn(_) { b'\xaa' })
+  inspect(
+    bytes_to_hex(
+      hmac_sha256_bytes(
+        key,
+        @utf8.encode("Test Using Larger Than Block-Size Key - Hash Key First"),
+      ),
+    ),
+    content="60e431591ee0b67f0d8a26aacbf5b77f8e0bc6213728c5140546040f0ee37f54",
+  )
+}
+
+///|
 test "constant-time equality checks length and content" {
   assert_true(constant_time_equal("abc", "abc"))
   assert_false(constant_time_equal("abc", "abd"))
   assert_false(constant_time_equal("abc", "abc0"))
+  assert_false(constant_time_equal("abc0", "abc"))
 }

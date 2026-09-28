@@ -9,6 +9,16 @@ All notable changes are documented here. HookLab follows semantic versioning.
 - Corrected the repository README and acceptance record after the Mooncakes
   publication; the `0.3.0-rc.3` registry archive remains an immutable snapshot
   with the older README and will be corrected in a later version.
+- Added a one-page reviewer path for independent package installation, CLI
+  demonstration, local platform startup and CI evidence.
+
+### Quality
+
+- Added an RFC 4231 HMAC long-key vector and reverse length-mismatch test;
+  the selected MoonBit domain packages now have repeatable coverage floors.
+- CI now checks a fresh Mooncakes consumer, a Windows PowerShell demo and
+  lockfile license metadata in addition to the existing Linux and PostgreSQL
+  paths.
 
 ## 0.3.0-rc.3 — 2026-09-28
 

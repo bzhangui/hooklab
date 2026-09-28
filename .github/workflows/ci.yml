@@ -38,6 +38,8 @@ jobs:
           echo "$HOME/.moon/bin" >> "$GITHUB_PATH"
       - name: Install platform adapter dependencies
         run: npm ci --ignore-scripts
+      - name: Check locked dependency license metadata
+        run: node scripts/check-dependency-licenses.mjs
       - name: Toolchain
         run: moon version --all
       - name: Require moonc 0.10.14 or newer
@@ -48,6 +50,8 @@ jobs:
         run: moon check --target all --deny-warn
       - name: Test
         run: moon test --target all --deny-warn
+      - name: MoonBit core coverage floor
+        run: node scripts/check-core-coverage.mjs
       - name: Build
         run: moon build --target all --deny-warn
       - name: Verify Mooncakes archive excludes private files
@@ -98,6 +102,58 @@ jobs:
         env:
           TEST_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/hooklab_test
         run: node scripts/platform-showcase.mjs
+
+  registry-smoke:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - name: Use Node.js 24
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          package-manager-cache: false
+      - name: Install MoonBit
+        run: |
+          curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash
+          echo "$HOME/.moon/bin" >> "$GITHUB_PATH"
+      - name: Install and call published package from a fresh project
+        run: node scripts/mooncakes-smoke.mjs 0.3.0-rc.3
+
+  windows-smoke:
+    runs-on: windows-2022
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - name: Use Node.js 24
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          package-manager-cache: false
+      - name: Install MoonBit
+        shell: pwsh
+        run: |
+          irm https://cli.moonbitlang.com/install/powershell.ps1 | iex
+          Add-Content -Path $env:GITHUB_PATH -Value "$env:USERPROFILE\.moon\bin" -Encoding utf8
+      - name: Check toolchain and install dependencies
+        shell: pwsh
+        run: |
+          moon version --all
+          node scripts/check-moonc-version.mjs
+          npm ci --ignore-scripts
+          node scripts/check-dependency-licenses.mjs
+      - name: Check, test and build MoonBit on Windows
+        shell: pwsh
+        run: |
+          moon fmt --check
+          moon check --target all --deny-warn
+          moon test --target all --deny-warn
+          moon build --target all --deny-warn
+      - name: Run PowerShell CLI demo
+        shell: pwsh
+        run: ./scripts/demo.ps1
+      - name: Run Node.js adapter tests
+        run: npm run test:platform
 
   deployment:
     runs-on: ubuntu-24.04
