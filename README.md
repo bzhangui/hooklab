@@ -33,9 +33,9 @@ PostgreSQL 模式可选共享数据库的每租户小时事件、小时正文总
 
 ## 本机一键试用与备份验证
 
-安装 Docker Compose v2 和 Node.js 24+ 后，在仓库根目录运行 `npm run quickstart`：脚本生成 Git 忽略的私有 `.env`，构建应用并启动 PostgreSQL 与 HookLab，默认只开放 `http://127.0.0.1:8787/`。运行 `npm run backup:verify` 会把数据库备份恢复到隔离的临时数据库，检查数据结构和已存端点密钥；归档与私有校验清单保存在 `backups/`。复制备份后可用 `npm run backup:inspect -- <归档路径>` 离线核对归档与加密密钥。密钥须单独安全保管。完整边界见[部署说明](docs/DEPLOYMENT.md)和[恢复运行手册](docs/OPERATIONS.md)；真实用户试用尚未开展，需先按[授权试用清单](docs/PILOT.md)准备。
+安装 Docker Compose v2 和 Node.js 24+ 后，先运行 `npm run doctor` 查看本机工具链、容器引擎和服务状态，再在仓库根目录运行 `npm run quickstart`：脚本生成 Git 忽略的私有 `.env`，构建应用并启动 PostgreSQL 与 HookLab，默认只开放 `http://127.0.0.1:8787/`。[第一个本机事件](docs/FIRST_EVENT.md)提供从门户创建资源到发布事件、查看轨迹的完整步骤。运行 `npm run backup:verify` 会把数据库备份恢复到隔离的临时数据库，检查数据结构和已存端点密钥；归档与私有校验清单保存在 `backups/`。复制备份后可用 `npm run backup:inspect -- <归档路径>` 离线核对归档与加密密钥。密钥须单独安全保管。完整边界见[部署说明](docs/DEPLOYMENT.md)和[恢复运行手册](docs/OPERATIONS.md)；真实用户试用尚未开展，需先按[授权试用清单](docs/PILOT.md)准备。
 
-PostgreSQL 模式的消费者门户现提供响应式工作台：交付健康度、告警、可搜索的事件/交付记录、事件轨迹、接入资源和操作入口。三步接入引导显示应用、端点、订阅的现有数量，示例按钮只填入参数，不会自动提交。它是随本地服务提供的管理页面，**不是公开部署的网站**；访问前应按[平台使用说明](docs/PLATFORM.md)准备租户令牌，并仅在可信地址输入。令牌不写入浏览器存储。
+PostgreSQL 模式的消费者门户现提供响应式工作台：交付健康度、告警、可搜索的事件/交付记录、事件轨迹、接入资源和操作入口。接入引导显示应用、端点、订阅和最近事件状态，并给出不含令牌的本机发布命令；示例按钮只填入参数，不会自动提交。它是随本地服务提供的管理页面，**不是公开部署的网站**；访问前应按[平台使用说明](docs/PLATFORM.md)准备租户令牌，并仅在可信地址输入。令牌不写入浏览器存储。
 
 首次本机体验可在 `npm run quickstart` 成功后运行 `npm run local:workspace`。这会创建一个本机租户，把只显示一次的 Owner 令牌保存到被 Git 忽略的 `.env.portal-local`；在门户输入该文件中的租户 ID 和令牌即可连接。此文件是明文私有凭据，不要上传、截图分享或放入公共目录。重复运行只会验证已有凭据，不会覆盖。
 

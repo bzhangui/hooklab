@@ -55,6 +55,16 @@ function isPublicAddress(address) {
   } catch (_) { return false; }
 }
 
+function allowedTargetHosts(value) {
+  if (!value) return [];
+  const hosts = value.split(',').map(item => item.trim().toLowerCase());
+  if (hosts.some(host => !host || host.length > 253 || !/^[a-z0-9.-]+$/.test(host) ||
+    host.split('.').some(label => !label || label.length > 63 || label.startsWith('-') || label.endsWith('-')))) {
+    throw new Error('invalid_outbound_host_allowlist');
+  }
+  return [...new Set(hosts)];
+}
+
 function targetUrl(value) {
   let url;
   try { url = new URL(value); } catch (_) { throw new Error('invalid_target_url'); }
@@ -63,6 +73,8 @@ function targetUrl(value) {
   if ((url.protocol !== 'https:' && !loopbackTest) || url.username || url.password || url.hash || url.search || !url.hostname) {
     throw new Error('unsafe_target_url');
   }
+  const allowed = allowedTargetHosts(process.env.HOOKLAB_OUTBOUND_HOST_ALLOWLIST);
+  if (allowed.length && !allowed.includes(url.hostname.toLowerCase())) throw new Error('target_not_allowed');
   return url;
 }
 
@@ -149,4 +161,4 @@ function validateSchema(schema, value, path = '$', depth = 0) {
   return issues.slice(0, 50);
 }
 
-module.exports = {idPattern, eventTypePattern, hashToken, tokenMatches, makeToken, encryptionKey, encryptSecret, decryptSecret, targetUrl, resolvedTarget, isPublicAddress, postPinned, traceId, newTraceparent, structuredCloudEvent, checkSchemaDefinition, validateSchema};
+module.exports = {idPattern, eventTypePattern, hashToken, tokenMatches, makeToken, encryptionKey, encryptSecret, decryptSecret, allowedTargetHosts, targetUrl, resolvedTarget, isPublicAddress, postPinned, traceId, newTraceparent, structuredCloudEvent, checkSchemaDefinition, validateSchema};

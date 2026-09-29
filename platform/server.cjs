@@ -13,7 +13,7 @@ const {runMigrations, latestVersion} = require('./migrations.cjs');
 const roles = {viewer: 1, developer: 2, owner: 3};
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const statusByCode = {invalid_json: 422, invalid_body: 422, invalid_id: 422, invalid_target_url: 422,
-  unsafe_target_url: 422, target_resolves_to_nonpublic_address: 422, invalid_schema: 422,
+  unsafe_target_url: 422, target_not_allowed: 422, target_resolves_to_nonpublic_address: 422, invalid_schema: 422,
   invalid_contract: 422, invalid_cloudevent: 422, invalid_cloudevent_source: 422,
   invalid_cloudevent_data: 422, invalid_cloudevent_time: 422,
   contract_violation: 422, unsupported_media_type: 415, missing_idempotency_key: 400,
@@ -82,6 +82,7 @@ function providerHeaders(req) {
 }
 async function startPlatform(options) {
   core.encryptionKey();
+  core.allowedTargetHosts(process.env.HOOKLAB_OUTBOUND_HOST_ALLOWLIST);
   assert(process.env.HOOKLAB_BOOTSTRAP_TOKEN && process.env.HOOKLAB_BOOTSTRAP_TOKEN.length >= 32, 'bootstrap_token_required');
   assert(process.env.HOOKLAB_METRICS_TOKEN && process.env.HOOKLAB_METRICS_TOKEN.length >= 32, 'metrics_token_required');
   const hourlyLimitText = process.env.HOOKLAB_TENANT_HOURLY_EVENT_LIMIT || '0';

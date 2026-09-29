@@ -203,6 +203,11 @@ function renderResources(catalog) {
     const count = Array.isArray(catalog[key]) ? catalog[key].length : 0;
     setText(id, count ? '已创建 ' + count : '尚未创建');
   }
+  const firstApp = Array.isArray(catalog.applications) ? catalog.applications.find(item => item.enabled !== false) : null;
+  setText('first-event-command', 'npm run first:event -- --tenant ' + tenant +
+    ' --application ' + (firstApp?.id || '<应用 ID>') + ' --type order.created');
+  setText('onboarding-event-state', snapshot.events.length ?
+    '最近有 ' + snapshot.events.length + ' 条事件' : '尚无事件');
 }
 function render() {
   renderSlo(snapshot.slo);
@@ -247,6 +252,8 @@ function reset() {
   setText('health-breakdown', '连接后显示交付状态');
   setText('contract-summary', '连接后显示');
   for (const id of ['onboarding-app-state', 'onboarding-endpoint-state', 'onboarding-subscription-state']) setText(id, '待连接');
+  setText('onboarding-event-state', '尚无事件');
+  setText('first-event-command', 'npm run first:event -- --tenant <租户 ID> --application <应用 ID> --type order.created');
   setText('updated-at', '等待连接');
   byId('health-progress').style.width = '0%';
   byId('health-badge').className = 'pill pill-neutral';
