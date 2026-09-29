@@ -10,7 +10,9 @@
 
 HookLab 是一个以 MoonBit 领域内核为基础的自托管 Webhook 安全与事件交付平台。它把最容易出事故的环节——**原始负载验签、时间窗校验、防重放、事务持久化、路由、受限转换、应用事件发布、出站签名、Worker 租约、可靠重试、死信与回放**——放进一条可测试、可运行的处理流水线。现有 SQLite 单机模式之外，项目新增 PostgreSQL 多租户应用事件交付模式。
 
-想先了解产品，可以打开[公开六场景交互演示](https://bzhangui.github.io/hooklab/)（[页面源码](docs/index.html)）：它只播放固定合成数据、不连接后端，不能代替真实试点。需要真正运行，请按[评审快速上手](docs/REVIEWER_QUICKSTART.md)在本机部署并执行[多角色合成试点](docs/SIMULATED_PILOT.md)。[模式选择与兼容策略](docs/PRODUCT_PATH.md)解释新项目为何优先采用 PostgreSQL 平台，以及 SQLite 历史转移的边界。
+想先了解产品，可以打开[公开六场景交互演示](https://bzhangui.github.io/hooklab/)（[页面源码](docs/index.html)）。它只播放固定合成数据、不连接后端，不能代替真实试点。本机预览运行 `npm run preview:showcase`，再打开 `http://127.0.0.1:8789/`；这个命令仅在回环地址提供静态演示资源，用 `Ctrl+C` 停止。
+
+需要真正运行后端，请按[评审快速上手](docs/REVIEWER_QUICKSTART.md)在本机部署并执行[多角色合成试点](docs/SIMULATED_PILOT.md)。[模式选择与兼容策略](docs/PRODUCT_PATH.md)解释新项目为何优先采用 PostgreSQL 平台，以及 SQLite 历史转移的边界。
 
 它既适合比赛演示，也解决真实工程问题：第三方回调“为什么验签失败”、同一事件“为什么执行两次”、失败请求“如何安全复现”、下游暂时不可用“如何可靠重试”。MoonBit 领域代码可以编译到 JS、Wasm、Wasm-GC 和 Native；服务器适配器运行在 Node.js。
 

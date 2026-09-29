@@ -12,6 +12,7 @@
     "schema:inspect": "node scripts/schema-inspect.mjs",
     "retention": "node scripts/retention.mjs",
     "quickstart": "node scripts/quickstart.mjs",
+    "preview:showcase": "node scripts/serve-showcase.mjs",
     "local:workspace": "node scripts/local-workspace.mjs",
     "backup:verify": "node scripts/backup-verify.mjs",
     "backup:inspect": "node scripts/backup-inspect.mjs"

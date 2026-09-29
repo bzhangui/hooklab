@@ -3,6 +3,7 @@ import {scenarios, getScenario} from './showcase-model.mjs';
 const byId = id => document.getElementById(id);
 const menu = byId('scenario-menu');
 const timeline = byId('timeline');
+const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
 let active = scenarios[0];
 let displayed = 0;
 let timer;
@@ -72,7 +73,14 @@ byId('play').addEventListener('click', () => {
   stop();
   displayed = 0;
   renderSteps();
+  if (reducedMotion) {
+    displayed = active.steps.length;
+    renderSteps();
+    return;
+  }
   byId('play').disabled = true;
+  displayed = 1;
+  renderSteps();
   timer = setInterval(() => {
     displayed++;
     renderSteps();
@@ -80,4 +88,5 @@ byId('play').addEventListener('click', () => {
   }, 650);
 });
 byId('reset').addEventListener('click', () => { stop(); displayed = 0; renderSteps(); });
+document.addEventListener('visibilitychange', () => { if (document.hidden) stop(); });
 select(active.id);

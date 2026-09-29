@@ -149,3 +149,14 @@ test('portal has no external assets or browser credential storage', () => {
   assert.doesNotMatch(html, /(?:src|href)="https?:\/\//i);
   assert.doesNotMatch(script, /localStorage|sessionStorage|document\.cookie/);
 });
+
+test('portal shows navigation rather than fabricated live delivery status before connection', () => {
+  const html = fs.readFileSync(path.join(__dirname, 'portal.html'), 'utf8');
+  const css = fs.readFileSync(path.join(__dirname, 'portal.css'), 'utf8');
+  assert.match(html, /class="skip-link" href="#overview"/);
+  for (const target of ['event-section', 'delivery-section', 'integrations']) {
+    assert.match(html, new RegExp(`class="hero-shortcuts"[\\s\\S]*?href="#${target}"`));
+  }
+  assert.doesNotMatch(html, /class="flow-node[^\"]*">DELIVERED/);
+  assert.match(css, /prefers-reduced-motion:\s*reduce/);
+});
