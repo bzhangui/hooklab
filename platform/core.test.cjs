@@ -27,6 +27,24 @@ test('endpoint policy rejects private targets and URL credentials', () => {
   assert.equal(core.targetUrl('https://example.com/hook').hostname, 'example.com');
 });
 
+test('optional exact-host allowlist rejects other targets and malformed configuration', () => {
+  const before = process.env.HOOKLAB_OUTBOUND_HOST_ALLOWLIST;
+  try {
+    process.env.HOOKLAB_OUTBOUND_HOST_ALLOWLIST = 'receiver.example, api.example';
+    assert.deepEqual(core.allowedTargetHosts(process.env.HOOKLAB_OUTBOUND_HOST_ALLOWLIST),
+      ['receiver.example', 'api.example']);
+    assert.equal(core.targetUrl('https://receiver.example/hook').hostname, 'receiver.example');
+    assert.throws(() => core.targetUrl('https://other.example/hook'), /target_not_allowed/);
+    assert.throws(() => core.targetUrl('https://sub.receiver.example/hook'), /target_not_allowed/);
+    for (const value of ['*.example', 'https://example.com', 'example..com', 'example.com,']) {
+      assert.throws(() => core.allowedTargetHosts(value), /invalid_outbound_host_allowlist/);
+    }
+  } finally {
+    if (before === undefined) delete process.env.HOOKLAB_OUTBOUND_HOST_ALLOWLIST;
+    else process.env.HOOKLAB_OUTBOUND_HOST_ALLOWLIST = before;
+  }
+});
+
 test('structured CloudEvents are checked before contracts', () => {
   const good = {specversion: '1.0', id: 'e-1', source: '/orders', type: 'order.created', data: {id: 4}};
   assert.deepEqual(core.structuredCloudEvent(good, 'order.created'), {ok: true, data: {id: 4}});

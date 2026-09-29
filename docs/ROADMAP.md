@@ -15,6 +15,9 @@ and [product-mode guide](PRODUCT_PATH.md).
 - [x] Six synthetic browser scenarios; no live API or user claims
 - [x] Multi-persona automated simulation with isolated database and bounded repeat option
 - [x] Optional single-process HTTP overload fuse and example TLS edge template
+- [x] Local prerequisite diagnostics, first-event CLI and portal outcome guide
+- [x] Optional exact-host outbound destination allowlist
+- [x] Manual 10/30-round synthetic repeatability workflow
 - [ ] Authorized external-user pilot and publishable, consented feedback
 - [ ] Long-duration production capacity and cross-host disaster-recovery evidence
 

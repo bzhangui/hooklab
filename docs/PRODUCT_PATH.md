@@ -9,6 +9,7 @@
 | 纯 MoonBit 验签或领域内核 | [Mooncakes 核心库](https://mooncakes.io/docs/bzhangui/hooklab) | `moon add` 安装的是库，不会启动完整 Node.js/PostgreSQL 平台 |
 
 新用户应先看[评审快速上手](REVIEWER_QUICKSTART.md)，再用[六场景公开演示](index.html)理解结果，最后在本机运行真实闭环。不要把静态演示当成在线 HookLab 后端。
+在本机真实闭环中，先运行 `npm run doctor`，再按[首个事件指南](FIRST_EVENT.md)创建资源、发布事件并从门户检查结果。应用发布令牌与租户管理令牌不同，且都不应出现在脚本参数或公开记录中。
 
 ## SQLite → PostgreSQL
 

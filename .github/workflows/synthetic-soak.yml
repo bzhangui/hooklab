@@ -1,0 +1,60 @@
+name: Synthetic repeatability
+
+on:
+  workflow_dispatch:
+    inputs:
+      repeats:
+        description: Bounded synthetic rounds against a disposable PostgreSQL database
+        required: true
+        type: choice
+        options:
+          - '10'
+          - '30'
+
+permissions:
+  contents: read
+
+jobs:
+  repeatability:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: hooklab_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d hooklab_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: 24
+          package-manager-cache: false
+      - name: Install MoonBit
+        run: |
+          curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash
+          echo "$HOME/.moon/bin" >> "$GITHUB_PATH"
+      - name: Install locked dependencies
+        run: npm ci --ignore-scripts
+      - name: Verify toolchain minimum
+        run: node scripts/check-moonc-version.mjs
+      - name: Run bounded synthetic repeatability
+        env:
+          TEST_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/hooklab_test
+          REPEATS: ${{ inputs.repeats }}
+        run: node scripts/simulated-pilot.mjs --profile full --repeat "$REPEATS"
+      - name: Upload synthetic-only summary
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: synthetic-repeatability-summary
+          path: target/simulated-pilot-report.json
+          if-no-files-found: warn

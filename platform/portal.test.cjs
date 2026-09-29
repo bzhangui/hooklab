@@ -89,12 +89,16 @@ test('onboarding reflects catalog and only prefills operations', async () => {
   assert.equal(get('onboarding-app-state').textContent, '已创建 1');
   assert.equal(get('onboarding-endpoint-state').textContent, '已创建 1');
   assert.equal(get('onboarding-subscription-state').textContent, '尚未创建');
+  assert.equal(get('onboarding-event-state').textContent, '最近有 1 条事件');
+  assert.match(get('first-event-command').textContent, /--tenant demo --application orders --type order\.created/);
+  assert.doesNotMatch(get('first-event-command').textContent, /private-admin-token/);
   buttons[2].dispatch('click');
   assert.equal(get('operation').value, 'subscriptions');
   assert.match(get('input').value, /orders-billing/);
   assert.equal(fetched.filter(call => call.options.method === 'POST').length, 0);
   get('disconnect').dispatch('click');
   assert.equal(get('onboarding-app-state').textContent, '待连接');
+  assert.match(get('first-event-command').textContent, /<租户 ID>/);
 });
 
 test('portal connects, renders operational data, filters rows and clears one-time credentials', async () => {

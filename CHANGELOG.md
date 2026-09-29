@@ -4,7 +4,26 @@ All notable changes are documented here. HookLab follows semantic versioning.
 
 ## Unreleased
 
-No unreleased changes have been recorded yet.
+### Added
+
+- A no-secret local diagnostics command and first-event CLI, with a fourth
+  portal onboarding step and a complete first-event runbook.
+- An optional exact-host outbound allowlist, checked both when creating
+  endpoints and on every delivery attempt.
+- A manually triggered 10/30-round synthetic repeatability workflow and
+  explicit capacity-evidence protocol.
+
+### Security and maintenance
+
+- Pinned CI action references to reviewed commit SHAs and configured weekly
+  dependency-update pull requests.
+- Enabled GitHub private vulnerability reporting and documented its route.
+
+### Limits
+
+- These changes do not establish a real external-user pilot, production
+  throughput/SLO, cross-host recovery, database row-level security or a
+  stable 1.0 API. The local PostgreSQL platform remains a controlled trial.
 
 ## 0.3.0-rc.5 — 2026-09-28
 

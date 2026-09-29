@@ -34,6 +34,10 @@ long-soak, external-network latency, or production SLO measurement. Compare
 numbers only on matched hardware, PostgreSQL, Node.js and MoonBit versions.
 No long-duration or authorized real-user performance result exists yet.
 
+The [controlled repeatability protocol](docs/CAPACITY_PROTOCOL.md) describes
+the manually triggered 10/30-round CI workflow, comparable-environment rules
+and the additional measurements required before any production capacity claim.
+
 ## Bounded repeated synthetic acceptance
 
 The [multi-persona runner](docs/SIMULATED_PILOT.md) can repeat its dedicated

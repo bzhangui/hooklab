@@ -4,6 +4,8 @@
 
 需要了解公网部署前仍缺什么，见[生产边界清单](PRODUCTION_BOUNDARY.md)。`HOOKLAB_MAX_INFLIGHT_REQUESTS` 可在私有 `.env` 中设置 1–99999 的单实例在途 HTTP 请求上限，超限返回 503 和 `Retry-After: 1`；默认 0 为关闭。它不是每秒速率限制，也不能代替可信 TLS 代理与多实例边缘限流。
 
+运行 `npm run doctor` 可检查 Node.js、MoonBit CLI、Docker Compose、Docker 引擎以及本机 `/health`；服务未启动时提示 `npm run quickstart`，不会打印密钥。试用者首次发布事件可按[本机首个事件指南](FIRST_EVENT.md)操作。
+
 ## 一条命令启动
 
 前提：Docker Engine 与 Docker Compose v2 正常工作，宿主机有 Node.js 24+ 和 npm；首次构建需要访问 Node 与 MoonBit 工具链下载源。在仓库根目录运行：
