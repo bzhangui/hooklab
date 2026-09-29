@@ -2,6 +2,12 @@
 
 本页只使用合成数据与本机回环地址。HookLab 的 MoonBit 核心库已发布到 Mooncakes；完整事件交付平台是需要自行部署的服务，不是公开网站或生产就绪服务。九项要求和证据入口见[验收清单](ACCEPTANCE.md)。
 
+## 最短复核路径
+
+准备 Node.js 24+ 和 MoonBit CLI，在克隆的仓库根目录运行 **`npm run reviewer:smoke`**。该命令依次验证编译器最低版本、从 Mooncakes 在全新项目安装核心库并调用事件 ID/出站签名 API、四目标格式/检查/测试/构建，以及合成 CLI 流程；成功时输出 `Reviewer smoke passed`。它不需要 Docker，也不启动后端。
+
+如需一条命令验证完整多角色交付，在 Docker Engine/Compose 可用时运行 **`npm run reviewer:smoke -- --platform`**。附加步骤会安装锁定的 npm 依赖、运行确定性平台适配模块覆盖率门槛，并启动一个只绑定本机回环的临时 PostgreSQL 容器执行一轮合成试点；脚本仅停止它自己创建的容器，不触碰现有数据库和 `.env`。该轮属于受控模拟，不代表真实用户试点或生产容量。细节见[合成试点说明](SIMULATED_PILOT.md)。
+
 无需安装即可打开[公开交互式合成演示](https://bzhangui.github.io/hooklab/)；它仅在浏览器播放固定教学场景，不连接真实 HookLab 服务。要复核真实代码，请继续以下步骤。
 
 ## 1. 验证公开包可以独立安装（约 1 分钟）
@@ -12,7 +18,7 @@
 node scripts/mooncakes-smoke.mjs
 ```
 
-脚本先查询[注册表](https://mooncakes.io/docs/bzhangui/hooklab)的最新公开版本，再在系统临时目录创建全新 MoonBit 项目，通过 `moon add` 下载该版本，导入 `bzhangui/hooklab/hooklab/crypto`，跨目标检查并调用 SHA-256。应输出 `Mooncakes consumer passed`；脚本只清理自己创建的临时目录。需要复核指定版本时，可在命令末尾加版本号。
+脚本先查询[注册表](https://mooncakes.io/docs/bzhangui/hooklab)的最新公开版本，再在系统临时目录创建全新 MoonBit 项目，通过 `moon add` 下载该版本，导入 `crypto` 和 `outbound` 包，跨目标检查并调用 SHA-256、事件 ID、出站签名与篡改拒绝。应输出 `Mooncakes consumer passed`；脚本只清理自己创建的临时目录。需要复核指定版本时，可在命令末尾加版本号。
 
 ## 2. 运行源码 CLI 演示（约 1 分钟）
 
@@ -24,4 +30,4 @@ Windows PowerShell：`./scripts/demo.ps1`；Linux/macOS：`bash scripts/demo.sh`
 
 ## 4. 查看自动化证据
 
-[GitHub Actions CI](https://github.com/bzhangui/hooklab/actions/workflows/ci.yml)运行四目标 MoonBit 格式/检查/构建/测试、选定核心包覆盖率门槛、PostgreSQL 双 Worker 与故障接管、容器备份恢复、Windows PowerShell 演示，以及新项目安装 Mooncakes 包的测试。独立的合成试点作业覆盖多角色与故障路径，输出不含密钥的摘要，运行方法见[合成试点说明](SIMULATED_PILOT.md)。覆盖率门槛针对九个确定性核心包，不代表服务端适配器或全仓库的总体覆盖率。可复现的合成交付流程见[季度评选证据](QUARTERLY_EVIDENCE.md)。目前没有可公开核实的真实外部试点或长期生产 SLO，不作相应宣称。
+[GitHub Actions CI](https://github.com/bzhangui/hooklab/actions/workflows/ci.yml)运行四目标 MoonBit 格式/检查/构建/测试、选定核心包覆盖率门槛、PostgreSQL 双 Worker 与故障接管、容器备份恢复、Windows PowerShell 演示，以及新项目安装 Mooncakes 包的业务 API 测试。另有 Node.js 确定性适配模块 85% 行覆盖率门槛；HTTP Server/Worker 由独立端到端作业验证，不能把该 85% 数字称为整个平台覆盖率。独立的合成试点作业覆盖多角色与故障路径，输出不含密钥的摘要，运行方法见[合成试点说明](SIMULATED_PILOT.md)。可复现的合成交付流程见[季度评选证据](QUARTERLY_EVIDENCE.md)。目前没有可公开核实的真实外部试点或长期生产 SLO，不作相应宣称。

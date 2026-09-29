@@ -20,6 +20,8 @@ moon build --target all --deny-warn
 npm run test:platform
 ```
 
+评审时可运行 `npm run reviewer:smoke`，直接在全新项目安装已发布包并调用出站事件 ID、签名和篡改拒绝 API。当前 GitHub 语言统计中 MoonBit 与 JavaScript 的字节数接近；这不是实现职责的准确度量。`platform/server.cjs`/`platform/worker.cjs` 承担数据库、HTTP、密钥加密和网络 I/O，不能宣称整个平台都由 MoonBit 编写；验收证据应落在上表的真实运行回调和 PostgreSQL 端到端测试。新增确定性业务规则应优先进入可移植的 MoonBit 包，避免在 Node.js 再实现一套分叉语义。
+
 完整 PostgreSQL 双 Worker、故障接管和 Compose 签名重试测试在 `.github/workflows/ci.yml` 中运行。后者使用独立的 CI-only 接收端和回环测试开关；默认部署不允许任意私网目标。各测试验证的是功能与边界，不证明生产 SLO、外部用户采用或所有 PostgreSQL 版本兼容。
 
 后续如增加新平台能力，应先判断它是可移植的确定性规则，还是与数据库/HTTP/容器紧耦合的 I/O。前者放入 MoonBit 并增加跨目标测试；后者留在薄适配层，同时保留端到端证据。单纯把 I/O 代码翻译成 MoonBit、却降低安全边界和可维护性，不作为目标。

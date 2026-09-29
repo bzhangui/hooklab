@@ -8,6 +8,8 @@
   "devDependencies": {"@electric-sql/pglite": "^0.5.8"},
   "scripts": {
     "test:platform": "node --test platform/*.test.cjs sdk/node/*.test.cjs examples/receiver-node/*.test.cjs examples/receiver-durable/*.test.cjs scripts/*.test.mjs",
+    "test:platform:coverage": "node --experimental-test-coverage --test --test-coverage-include=platform/admission.cjs --test-coverage-include=platform/core.cjs --test-coverage-include=platform/migrations.cjs --test-coverage-include=platform/retention.cjs --test-coverage-lines=85 platform/*.test.cjs",
+    "reviewer:smoke": "node scripts/reviewer-smoke.mjs",
     "test:simulated": "node scripts/simulated-pilot-local.mjs",
     "schema:inspect": "node scripts/schema-inspect.mjs",
     "retention": "node scripts/retention.mjs",

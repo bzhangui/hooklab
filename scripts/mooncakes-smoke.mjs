@@ -1,4 +1,5 @@
 import {spawnSync} from 'node:child_process';
+import {createHash} from 'node:crypto';
 import {basename, dirname, join} from 'node:path';
 import {mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
@@ -6,6 +7,7 @@ import {tmpdir} from 'node:os';
 const temporaryParent = realpathSync(tmpdir());
 const smokeRoot = mkdtempSync(join(temporaryParent, 'hooklab-mooncakes-'));
 const expected = 'ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad';
+const expectedEventId = 'publish:' + createHash('sha256').update('orders\norder-42-created').digest('hex').slice(0, 24);
 
 function moon(...args) {
   const result = spawnSync('moon', args, {
@@ -43,6 +45,7 @@ try {
   writeFileSync(join(smokeRoot, 'cmd', 'main', 'moon.pkg'), [
     'import {',
     '  "bzhangui/hooklab/hooklab/crypto" @crypto,',
+    '  "bzhangui/hooklab/hooklab/outbound" @outbound,',
     '}',
     'pkgtype(kind: "executable")',
     '',
@@ -51,6 +54,12 @@ try {
     '///|',
     'fn main {',
     '  println(@crypto.sha256_hex("abc"))',
+    '  let event_id = @outbound.publication_event_id("orders", "order-42-created")',
+    '  let payload = "{\\"order_id\\":\\"order-42\\"}"',
+    '  let signature = @outbound.sign_delivery("local-secret", 1700000000L, "delivery:example", event_id, "order.created", payload)',
+    '  println(event_id)',
+    '  println(@outbound.verify_delivery_signature(["local-secret"], signature, 1700000000L, "delivery:example", event_id, "order.created", payload))',
+    '  println(@outbound.verify_delivery_signature(["local-secret"], signature, 1700000000L, "delivery:example", event_id, "order.created", "changed"))',
     '}',
     '',
   ].join('\n'));
@@ -62,8 +71,10 @@ try {
   }
   moon('check', '--target', 'all', '--deny-warn');
   const actual = moon('run', '--target', 'js', 'cmd/main');
-  if (actual !== expected) throw new Error(`Unexpected published package result: ${actual}`);
-  console.log(`Mooncakes consumer passed: bzhangui/hooklab@${version}, all-target check, SHA-256 vector`);
+  if (actual !== [expected, expectedEventId, 'true', 'false'].join('\n')) {
+    throw new Error(`Unexpected published package result: ${actual}`);
+  }
+  console.log(`Mooncakes consumer passed: bzhangui/hooklab@${version}, all-target check, SHA-256, event ID and outbound signature`);
 } finally {
   const resolved = realpathSync(smokeRoot);
   if (dirname(resolved) !== temporaryParent || !basename(resolved).startsWith('hooklab-mooncakes-')) {

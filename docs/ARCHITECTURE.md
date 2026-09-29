@@ -6,6 +6,8 @@
 
 ## 数据流
 
+下图是 **SQLite `serve-config` 网关** 的入站链路，不代表 PostgreSQL 平台的存储选择。`serve-platform` 使用共享 PostgreSQL：租户鉴权、契约与提供方验证之后由 MoonBit 回调计算订阅计划、签名和重试决策，Node.js 负责事务、租约和 HTTP I/O。两种模式可以分别部署，但当前不会自动迁移活动队列或密钥；对应的调用链和测试入口见[MoonBit 核心职责](MOONBIT_CORE.md)。
+
 ```text
 raw request
     │

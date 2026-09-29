@@ -8,6 +8,8 @@
 
 验收要求 `moonc >= 0.10.14`。运行 `moon version --all` 和 `node scripts/check-moonc-version.mjs` 可核对本机版本；CI 也强制执行同一版本门槛。第一次复核建议从[评审快速上手](docs/REVIEWER_QUICKSTART.md)开始；九项验收材料、发布记录与独立安装验证见[验收清单](docs/ACCEPTANCE.md)。
 
+最快的源码验收命令是 **`npm run reviewer:smoke`**：无需 Docker，依次检查公开 Mooncakes 包的事件 ID 与出站签名 API、四目标 MoonBit 检查/测试/构建及合成 CLI 流程。需要隔离 PostgreSQL 的完整多角色交付时，在 Docker Engine 可用的机器运行 **`npm run reviewer:smoke -- --platform`**；后者只使用临时回环容器与合成数据。具体前提及预期输出见[评审快速上手](docs/REVIEWER_QUICKSTART.md)。
+
 HookLab 是一个以 MoonBit 领域内核为基础的自托管 Webhook 安全与事件交付平台。它把最容易出事故的环节——**原始负载验签、时间窗校验、防重放、事务持久化、路由、受限转换、应用事件发布、出站签名、Worker 租约、可靠重试、死信与回放**——放进一条可测试、可运行的处理流水线。现有 SQLite 单机模式之外，项目新增 PostgreSQL 多租户应用事件交付模式。
 
 想先了解产品，可以打开[公开六场景交互演示](https://bzhangui.github.io/hooklab/)（[页面源码](docs/index.html)）。它只播放固定合成数据、不连接后端，不能代替真实试点。本机预览运行 `npm run preview:showcase`，再打开 `http://127.0.0.1:8789/`；这个命令仅在回环地址提供静态演示资源，用 `Ctrl+C` 停止。
@@ -18,7 +20,7 @@ HookLab 是一个以 MoonBit 领域内核为基础的自托管 Webhook 安全与
 
 ## 从 Mooncakes 使用 MoonBit 核心库
 
-在一个新的 MoonBit 项目中运行 `moon add bzhangui/hooklab`，或从注册表选定版本后显式固定 `@版本号`。例如，在可执行包的 `moon.pkg` 中引入 `"bzhangui/hooklab/hooklab/crypto" @crypto`，再调用 `@crypto.sha256_hex("abc")`，运行结果应为 `ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad`。可用 `node scripts/mooncakes-smoke.mjs` 在隔离的新项目中自动复核注册表最新版本，也可在命令末尾传入具体版本号。完整的自托管事件交付服务仍按下文从仓库源码部署，不能只靠 `moon add` 启动。
+在一个新的 MoonBit 项目中运行 `moon add bzhangui/hooklab`，或从注册表选定版本后显式固定 `@版本号`。例如，在可执行包的 `moon.pkg` 中引入 `"bzhangui/hooklab/hooklab/outbound" @outbound`，即可调用 `@outbound.publication_event_id("orders", "order-42-created")`；同一包还提供出站 HMAC 签名与验证。`node scripts/mooncakes-smoke.mjs` 会在隔离的新项目中复核注册表版本、SHA-256、业务事件 ID、签名和篡改拒绝，也可在命令末尾传入具体版本号。完整的自托管事件交付服务仍按下文从仓库源码部署，不能只靠 `moon add` 启动。
 
 ## 两种运行模式
 
@@ -184,6 +186,7 @@ moon check --target all --deny-warn
 moon test --target all --deny-warn
 moon build --target all --deny-warn
 node scripts/check-core-coverage.mjs
+node scripts/check-toolchain-lock.mjs # CI/发布维护者核对已审查版本；普通用户可使用更高兼容版本
 node scripts/check-moonc-version.mjs
 node scripts/check-package-contents.mjs
 node scripts/gateway-e2e.mjs
@@ -196,6 +199,7 @@ node scripts/gateway-outbound-e2e.mjs
 node scripts/gateway-lease-e2e.mjs
 npm ci
 npm run test:platform
+npm run test:platform:coverage # 仅选定的确定性 Node 适配模块，非全平台覆盖率
 # 使用专用 PostgreSQL 测试库设置 TEST_DATABASE_URL 后：
 node scripts/platform-e2e.mjs
 node scripts/platform-showcase.mjs

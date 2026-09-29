@@ -8,9 +8,9 @@
 | 公开 GitHub 与连续提交 | [公开仓库](https://github.com/bzhangui/hooklab)及其提交历史；提交须区分功能、测试和文档 |
 | 结构与声明功能 | `README.md` 的项目结构、`docs/ARCHITECTURE.md`、网关和 PostgreSQL 端到端测试 |
 | README 可安装、可使用、可复现 | `README.md` 的本机快速启动、CLI 示例和验证命令；`docs/DEPLOYMENT.md`、`docs/PLATFORM.md` |
-| CI 检查、构建、测试 | `.github/workflows/ci.yml`：四目标格式/检查/单测/构建、选定核心包覆盖率门槛、Windows 演示、公开包独立安装、网关与 PostgreSQL 集成、容器部署和恢复 |
-| 可运行示例 | [公开的合成交互页](https://bzhangui.github.io/hooklab/)、[评审快速上手](REVIEWER_QUICKSTART.md)、`scripts/demo.sh` / `scripts/demo.ps1`、`examples/`、`scripts/platform-showcase.mjs`；静态页面不等于运行后端 |
-| 核心路径测试 | `moon test --target all --deny-warn`、`node scripts/check-core-coverage.mjs`、`npm run test:platform`、网关和 PostgreSQL 端到端脚本、[多角色合成试点](SIMULATED_PILOT.md)；生产试点不在已有证据内 |
+| CI 检查、构建、测试 | `.github/workflows/ci.yml`：四目标格式/检查/单测/构建、选定核心包覆盖率门槛、Node.js 确定性适配模块 85% 行覆盖率门槛、Windows 演示、公开包独立安装、网关与 PostgreSQL 集成、容器部署和恢复；工具链版本漂移需人工复核 |
+| 可运行示例 | `npm run reviewer:smoke` 一条命令复核公开包业务 API、四目标测试及合成 CLI；可选 `npm run reviewer:smoke -- --platform` 用临时 PostgreSQL 复核多角色交付；[公开合成页](https://bzhangui.github.io/hooklab/)仅教学，不等于运行后端 |
+| 核心路径测试 | `moon test --target all --deny-warn`、`node scripts/check-core-coverage.mjs`、`npm run test:platform`、`npm run test:platform:coverage`、网关和 PostgreSQL 端到端脚本、[多角色合成试点](SIMULATED_PILOT.md)；覆盖率门槛只适用选定模块，生产试点不在已有证据内 |
 | 发布到 mooncakes.io | **已完成**：[公开模块页](https://mooncakes.io/docs/bzhangui/hooklab)；`moon view bzhangui/hooklab --json` 可查最新版本、MIT 许可证和仓库地址；`node scripts/mooncakes-smoke.mjs` 在独立新项目安装并调用 `hooklab/crypto` |
 | OSI 许可证与第三方兼容 | 根目录 `LICENSE` (MIT)、`moon.mod` 的 MIT 字段和 `THIRD_PARTY_NOTICES.md` |
 
@@ -41,6 +41,6 @@ node scripts/check-package-contents.mjs
 
 账号 `bzhangui` 已完成注册。当前 `0.3.0-rc.5` 于 2026-09-28 发布：`moon publish --frozen` 返回 `200 OK`；`moon view bzhangui/hooklab@0.3.0-rc.5 --json` 返回 `status: success`、MIT 许可证和正确的 GitHub 仓库地址。[GitHub 预发布标签](https://github.com/bzhangui/hooklab/releases/tag/v0.3.0-rc.5)指向通过[五作业 CI](https://github.com/bzhangui/hooklab/actions/runs/36429819183)的 `04d0d08`。不要将 `~/.moon/credentials.json`、登录令牌或任何授权码提交、上传或分享。
 
-在隔离的新 MoonBit 项目中，`node scripts/mooncakes-smoke.mjs` 会查询最新公开版本并通过 `moon add` 下载；将 `"bzhangui/hooklab/hooklab/crypto" @crypto` 加入可执行包的 `moon.pkg`，在 `main.mbt` 中运行 `println(@crypto.sha256_hex("abc"))`，应输出 `ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad`，且 `moon check --target all --deny-warn` 通过。`0.3.0-rc.5` 的显式固定版本已复核通过，CI 会持续验证它；这证明公开包可独立安装和调用，不等于完整 Node.js 平台服务已通过外部真实试点。
+在隔离的新 MoonBit 项目中，`node scripts/mooncakes-smoke.mjs` 会查询最新公开版本并通过 `moon add` 下载；同时导入 `crypto` 与 `outbound` 包，调用 SHA-256、确定性事件 ID、出站 HMAC 签名与篡改拒绝，且 `moon check --target all --deny-warn` 通过。`0.3.0-rc.5` 的显式固定版本已复核通过，CI 会持续验证它；这证明公开包的事件交付业务 API 可独立安装和调用，不等于完整 Node.js 平台服务已通过外部真实试点。
 
 Mooncakes 的 `rc.3` 历史归档是发布时快照，内含旧 README 的“尚未发布”描述；该描述已过时，不能通过改动 GitHub 上的 README 覆盖同一已发布版本。`rc.4` 起改为版本无关 README；页面另有“尚未发布到 npm”，指的是独立 Node.js SDK，不是 Mooncakes 包。每次发布必须递增 `moon.mod` 版本，并重复上述安全检查与独立安装核验。

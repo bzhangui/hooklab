@@ -6,6 +6,13 @@ All notable changes are documented here. HookLab follows semantic versioning.
 
 ### Added
 
+- A one-command reviewer smoke path, including independent published-package
+  event ID, outbound signing and tamper rejection; an optional disposable
+  PostgreSQL path covers the multi-persona event-delivery flow.
+- An 85% line coverage gate for selected deterministic Node.js platform
+  helpers, separate from MoonBit core coverage and PostgreSQL E2E tests.
+- A reviewed MoonBit toolchain version-drift gate in CI and the container
+  build; upstream binary checksums are not yet pinned.
 - A no-secret local diagnostics command and first-event CLI, with a fourth
   portal onboarding step and a complete first-event runbook.
 - An optional exact-host outbound allowlist, checked both when creating
@@ -18,6 +25,9 @@ All notable changes are documented here. HookLab follows semantic versioning.
 - Pinned CI action references to reviewed commit SHAs and configured weekly
   dependency-update pull requests.
 - Enabled GitHub private vulnerability reporting and documented its route.
+- Stabilized the gateway limit E2E assertion against network-arrival jitter
+  while still distinguishing the one-second rate limit from concurrency-only
+  scheduling; the exact boundary remains covered by MoonBit unit tests.
 
 ### Limits
 

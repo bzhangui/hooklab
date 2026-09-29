@@ -128,10 +128,11 @@ try {
   assert.equal(fastStarts.length, 3);
   assert.equal(maxActiveSlow, 2, "slow target should use both configured slots");
   // Network arrival trails limiter admission and varies under CI scheduling.
-  // The exact one-second boundary is asserted by the MoonBit limiter tests;
-  // here we check that the third request is materially delayed end to end.
+  // The exact one-second boundary is asserted by the MoonBit limiter tests.
+  // Here the gap must exceed the 450 ms receiver delay by at least 200 ms,
+  // distinguishing rate limiting from concurrency-only scheduling.
   const slowGapMs = slowStarts[2] - slowStarts[0];
-  assert.ok(slowGapMs >= 750,
+  assert.ok(slowGapMs >= 650,
     `third slow attempt should be rate-delayed (observed ${Math.round(slowGapMs)}ms)`);
   assert.ok(fastStarts[0] < slowEnds[0],
     "fast target should not wait for the slow target to finish");

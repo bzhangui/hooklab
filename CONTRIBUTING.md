@@ -6,6 +6,7 @@ Before submitting a change, run:
 
 ```bash
 node scripts/check-moonc-version.mjs
+node scripts/check-toolchain-lock.mjs
 moon info
 moon fmt
 moon check --target all --deny-warn
@@ -21,12 +22,20 @@ node scripts/gateway-circuit-e2e.mjs
 node scripts/gateway-outbound-e2e.mjs
 node scripts/gateway-lease-e2e.mjs
 npm run test:platform
+npm run test:platform:coverage
 ```
 
 Changes go through a pull request with the five CI jobs passing. GitHub Actions
 are pinned to commit SHAs; Dependabot proposes updates to both npm dependencies
 and actions, and each update must pass CI before merge. Do not treat a green
 synthetic repeatability run as an external pilot or production SLO.
+The CI toolchain version gate deliberately fails if the upstream installer
+changes its output; review the release notes, update
+`scripts/check-toolchain-lock.mjs`, and rerun all jobs before merging. This is
+a version-drift gate rather than a vendored or checksum-pinned toolchain.
+Node coverage applies only to `admission.cjs`, `core.cjs`, `migrations.cjs` and
+`retention.cjs`; server and worker paths require the separate PostgreSQL and
+Compose E2E jobs. Never report the helper floor as whole-platform coverage.
 
 Changes to PostgreSQL schema or retention must also test both fresh setup and
 v1-to-current migration, keep existing data intact, document backup/rollback
