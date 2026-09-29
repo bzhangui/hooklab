@@ -37,6 +37,11 @@ No long-duration or authorized real-user performance result exists yet.
 The [controlled repeatability protocol](docs/CAPACITY_PROTOCOL.md) describes
 the manually triggered 10/30-round CI workflow, comparable-environment rules
 and the additional measurements required before any production capacity claim.
+The [2026-09-29 30-round run](https://github.com/bzhangui/hooklab/actions/runs/36566633026)
+passed all 99 synthetic scenario groups on commit `ad17b31`. Across the 30
+loopback showcase batches, per-round publish-request p95 ranged from 96 to
+118 ms and all-delivered batch time from 301 to 325 ms. These are GitHub
+runner samples, not external-network or production capacity figures.
 
 ## Bounded repeated synthetic acceptance
 
