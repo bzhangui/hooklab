@@ -23,6 +23,11 @@ node scripts/gateway-lease-e2e.mjs
 npm run test:platform
 ```
 
+Changes go through a pull request with the five CI jobs passing. GitHub Actions
+are pinned to commit SHAs; Dependabot proposes updates to both npm dependencies
+and actions, and each update must pass CI before merge. Do not treat a green
+synthetic repeatability run as an external pilot or production SLO.
+
 Changes to PostgreSQL schema or retention must also test both fresh setup and
 v1-to-current migration, keep existing data intact, document backup/rollback
 requirements, and never run deletion against a shared database. The PostgreSQL
