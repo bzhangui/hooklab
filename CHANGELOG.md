@@ -25,6 +25,9 @@ All notable changes are documented here. HookLab follows semantic versioning.
 - Pinned CI action references to reviewed commit SHAs and configured weekly
   dependency-update pull requests.
 - Enabled GitHub private vulnerability reporting and documented its route.
+- Stabilized the gateway limit E2E assertion against network-arrival jitter
+  while still distinguishing the one-second rate limit from concurrency-only
+  scheduling; the exact boundary remains covered by MoonBit unit tests.
 
 ### Limits
 
