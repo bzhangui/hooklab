@@ -44,6 +44,8 @@ jobs:
         run: moon version --all
       - name: Require moonc 0.10.14 or newer
         run: node scripts/check-moonc-version.mjs
+      - name: Reject unreviewed toolchain drift
+        run: node scripts/check-toolchain-lock.mjs
       - name: Format
         run: moon fmt --check
       - name: Check
@@ -85,6 +87,8 @@ jobs:
         run: node scripts/gateway-lease-e2e.mjs
       - name: Platform unit tests
         run: npm run test:platform
+      - name: Platform deterministic helper coverage floor
+        run: npm run test:platform:coverage
       - name: Parse machine-readable API description
         run: node -e "JSON.parse(require('node:fs').readFileSync('docs/openapi.json','utf8'))"
       - name: PostgreSQL multi-worker E2E
@@ -119,6 +123,8 @@ jobs:
           echo "$HOME/.moon/bin" >> "$GITHUB_PATH"
       - name: Install and call published package from a fresh project
         run: node scripts/mooncakes-smoke.mjs 0.3.0-rc.5
+      - name: Reject unreviewed toolchain drift
+        run: node scripts/check-toolchain-lock.mjs
 
   simulated-pilot:
     runs-on: ubuntu-24.04
@@ -182,6 +188,7 @@ jobs:
         run: |
           moon version --all
           node scripts/check-moonc-version.mjs
+          node scripts/check-toolchain-lock.mjs
           npm ci --ignore-scripts
           node scripts/check-dependency-licenses.mjs
       - name: Check, test and build MoonBit on Windows
@@ -196,6 +203,8 @@ jobs:
         run: ./scripts/demo.ps1
       - name: Run Node.js adapter tests
         run: npm run test:platform
+      - name: Platform deterministic helper coverage floor
+        run: npm run test:platform:coverage
 
   deployment:
     runs-on: ubuntu-24.04

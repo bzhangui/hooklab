@@ -7,10 +7,11 @@ RUN curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash
 
 WORKDIR /src
 COPY moon.mod README.md LICENSE package.json package-lock.json ./
+COPY scripts/check-toolchain-lock.mjs ./scripts/check-toolchain-lock.mjs
 COPY hooklab ./hooklab
 COPY cmd ./cmd
 COPY platform ./platform
-RUN npm ci --ignore-scripts && moon build --target js --deny-warn
+RUN node scripts/check-toolchain-lock.mjs && npm ci --ignore-scripts && moon build --target js --deny-warn
 
 FROM node:24-bookworm-slim
 ENV NODE_ENV=production

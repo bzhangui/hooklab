@@ -46,6 +46,8 @@ jobs:
         run: npm ci --ignore-scripts
       - name: Verify toolchain minimum
         run: node scripts/check-moonc-version.mjs
+      - name: Reject unreviewed toolchain drift
+        run: node scripts/check-toolchain-lock.mjs
       - name: Run bounded synthetic repeatability
         env:
           TEST_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/hooklab_test
