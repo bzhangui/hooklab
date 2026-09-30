@@ -6,6 +6,12 @@ All notable changes are documented here. HookLab follows semantic versioning.
 
 ### Added
 
+- A locally packable, zero-dependency Node receiver SDK with independent
+  offline install, license, package-content and signature-vector checks; no
+  npm registry publication is claimed.
+- Expanded synthetic tenant-owner probes across read and mutation surfaces,
+  plus a CI fault drill that rejects corrupted backups and wrong key
+  fingerprints before restoration.
 - A one-command reviewer smoke path, including independent published-package
   event ID, outbound signing and tamper rejection; an optional disposable
   PostgreSQL path covers the multi-persona event-delivery flow.
@@ -31,7 +37,8 @@ All notable changes are documented here. HookLab follows semantic versioning.
 
 ### Limits
 
-- These changes do not establish a real external-user pilot, production
+- Controlled simulated personas and injected faults do not establish a real
+  external-user pilot, production
   throughput/SLO, cross-host recovery, database row-level security or a
   stable 1.0 API. The local PostgreSQL platform remains a controlled trial.
 

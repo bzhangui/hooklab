@@ -87,6 +87,8 @@ jobs:
         run: node scripts/gateway-lease-e2e.mjs
       - name: Platform unit tests
         run: npm run test:platform
+      - name: Offline-pack and install Node receiver SDK
+        run: npm run sdk:pack:smoke
       - name: Platform deterministic helper coverage floor
         run: npm run test:platform:coverage
       - name: Parse machine-readable API description
@@ -203,6 +205,8 @@ jobs:
         run: ./scripts/demo.ps1
       - name: Run Node.js adapter tests
         run: npm run test:platform
+      - name: Offline-pack and install Node receiver SDK
+        run: npm run sdk:pack:smoke
       - name: Platform deterministic helper coverage floor
         run: npm run test:platform:coverage
 
@@ -236,6 +240,8 @@ jobs:
         run: npm run backup:verify
       - name: Check portable archive and key fingerprint
         run: npm run backup:inspect -- "$(find backups -maxdepth 1 -name '*.dump' -print -quit)"
+      - name: Reject corrupted synthetic backup and wrong key
+        run: node scripts/backup-fault-smoke.mjs "$(find backups -maxdepth 1 -name '*.dump' -print -quit)"
       - name: Start app from backup on a fresh database volume
         env:
           COMPOSE_FILE: compose.yaml

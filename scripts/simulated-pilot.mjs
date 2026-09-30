@@ -113,6 +113,7 @@ function main() {
   const startedAt = new Date().toISOString();
   const results = [];
   const steps = [['reviewer', 'Node.js 单元与安全边界', ['--test', ...platformTests()]],
+    ['integrator', 'Node 接收方离线打包与独立安装', [join(root, 'scripts', 'sdk-package-smoke.mjs')]],
     ...gatewayScenarios.map(([role, name, file]) => [role, name, [join(root, 'scripts', file)]]),
   ];
   for (const [role, name, args] of steps) {
