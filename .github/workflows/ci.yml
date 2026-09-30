@@ -224,7 +224,12 @@ jobs:
           openssl req -x509 -nodes -newkey rsa:2048 -days 1 \
             -subj '/CN=hooklab.example.com' \
             -keyout "$certdir/privkey.pem" -out "$certdir/fullchain.pem" >/dev/null 2>&1
-          docker run --rm \
+          for attempt in 1 2 3; do
+            if docker pull nginx:stable-alpine; then break; fi
+            if [ "$attempt" -eq 3 ]; then exit 1; fi
+            sleep 3
+          done
+          docker run --pull=never --rm \
             -v "$PWD/ops/nginx-hooklab.conf.example:/etc/nginx/conf.d/hooklab.conf:ro" \
             -v "$certdir:/etc/ssl/hooklab:ro" nginx:stable-alpine nginx -t
       - name: Use Node.js 24
@@ -266,4 +271,4 @@ jobs:
           echo 'Fresh-volume restore booted HookLab and retained the synthetic event.'
       - name: Stop temporary deployment
         if: always()
-        run: docker compose down
+        run: if [ -f .env ]; then docker compose down; fi
