@@ -1,0 +1,15 @@
+{
+  "name": "@bzhangui/hooklab-receiver",
+  "version": "0.3.0-rc.5",
+  "description": "Zero-dependency raw-body verifier for HookLab outbound webhooks",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/bzhangui/hooklab.git",
+    "directory": "sdk/node"
+  },
+  "engines": {"node": ">=20"},
+  "main": "./receiver.cjs",
+  "exports": {".": "./receiver.cjs"},
+  "files": ["receiver.cjs", "README.md", "LICENSE"]
+}

@@ -35,7 +35,7 @@ node scripts/check-package-contents.mjs
 
 新增范围在[提交 `e6921f0` 的五作业 CI](https://github.com/bzhangui/hooklab/actions/runs/36429210008)通过：Linux 完整检查、Windows 冒烟、隔离容器部署与备份恢复、已发布包的独立安装，以及三轮多角色合成档。CI 通过不表示真实外部用户试点、公网安全审计或长时生产稳定性已经完成。
 
-后续维护增加 `npm run doctor`、[首个事件闭环](FIRST_EVENT.md)、精确目标主机白名单，以及可手动触发的[10/30 轮合成重复性验证](CAPACITY_PROTOCOL.md)。这些改动须以当次提交的 CI 结果为准；手动重复性工作流提供回归证据，不替代真实用户、生产容量或异地灾备结果。
+后续维护增加 `npm run doctor`、[首个事件闭环](FIRST_EVENT.md)、精确目标主机白名单，以及可手动触发的[10/30 轮合成重复性验证](CAPACITY_PROTOCOL.md)。Node 接收方还可通过 `npm run sdk:pack:smoke` 在独立临时项目离线安装；它**未发布到 npm**，不影响 MoonBit 核心已发布到 Mooncakes 的验收事实。部署 CI 注入错误备份指纹和损坏归档，必须拒绝恢复。这些改动须以当次提交的 CI 结果为准；手动重复性工作流提供回归证据，不替代真实用户、生产容量或异地灾备结果。
 
 ## 发布与独立安装核验
 

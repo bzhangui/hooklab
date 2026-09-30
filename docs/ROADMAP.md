@@ -18,6 +18,8 @@ and [product-mode guide](PRODUCT_PATH.md).
 - [x] Local prerequisite diagnostics, first-event CLI and portal outcome guide
 - [x] Optional exact-host outbound destination allowlist
 - [x] Manual 10/30-round synthetic repeatability workflow
+- [x] Offline-packable Node receiver verifier with isolated consumer-install smoke
+- [x] Synthetic cross-tenant read/write probes and corrupt-backup/wrong-key rejection drill
 - [ ] Authorized external-user pilot and publishable, consented feedback
 - [ ] Long-duration production capacity and cross-host disaster-recovery evidence
 
@@ -59,7 +61,8 @@ and [product-mode guide](PRODUCT_PATH.md).
 - [x] Consumer portal for delivery history and secret rotation
 - [x] Node.js receiver verifier, loopback example and MoonBit signature conformance vector
 - [x] Durable local Node.js consumer sample with transactional deduplication and restart test
-- [ ] Other-language SDKs and published package
+- [x] Locally packable Node receiver package with MIT license and CI consumer-install check
+- [ ] npm registry publication and other-language SDKs
 
 ## 1.0 — Production hardening
 

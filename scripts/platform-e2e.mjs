@@ -139,6 +139,24 @@ try {
   assert.equal(JSON.stringify(list.data).includes(endpoint.data.signingSecret), false);
   assert.equal(JSON.stringify(list.data).includes(application.data.publishToken), false);
   assert.equal(JSON.stringify(await request(baseA, apiA + '/events', 'GET', ownerA)).includes('orderId'), false);
+  // Two simulated owners probe each other's read and write surfaces, including
+  // the IDs that would be easiest to copy out of a shared delivery link.
+  for (const route of ['/catalog', '/contracts', '/provider-credentials', '/events',
+    '/deliveries', '/audit', '/alerts', '/slo']) {
+    assert.equal((await request(baseB, apiA + route, 'GET', ownerB)).status, 401, route);
+    assert.equal((await request(baseA, apiB + route, 'GET', ownerA)).status, 401, route);
+  }
+  for (const [route, method, body] of [
+    ['/applications', 'POST', {id: 'cross-tenant-app'}],
+    ['/endpoints/consumer', 'PATCH', {enabled: false}],
+    ['/applications/orders/rotate-token', 'POST', undefined],
+    ['/endpoints/consumer/rotate-secret', 'POST', undefined],
+  ]) assert.equal((await request(baseB, apiA + route, method, ownerB, body)).status, 401, route);
+  assert.equal((await request(baseB, apiB + '/applications/orders/events/order.created', 'POST',
+    application.data.publishToken, envelope, headers)).status, 401);
+  assert.equal((await request(baseB, apiB + '/events/' + published.data.eventId + '/timeline', 'GET', ownerB)).status, 404);
+  assert.equal((await request(baseB, apiB + '/catalog', 'GET', ownerB)).data.applications.length, 0);
+  assert.equal((await request(baseA, apiA + '/catalog', 'GET', ownerA)).data.endpoints[0].enabled, true);
   const attempts = await request(baseA, apiA + '/deliveries/' +
     (await request(baseA, apiA + '/deliveries', 'GET', ownerA)).data[0].id + '/attempts', 'GET', ownerA);
   assert.equal(attempts.status, 200);
@@ -268,6 +286,10 @@ try {
     return rows.find(row => row.event_id === second.data.eventId && row.endpoint_id === 'bad-consumer' && row.state === 'dead_lettered');
   });
   await until(async () => (await request(baseA, apiA + '/alerts', 'GET', ownerA)).data.some(row => row.kind === 'dead_letters' && row.state === 'open'));
+  assert.deepEqual((await request(baseB, apiB + '/deliveries/' + dead.id + '/attempts', 'GET', ownerB)).data, []);
+  assert.equal((await request(baseB, apiB + '/deliveries/' + dead.id + '/retry', 'POST', ownerB)).status, 409);
+  assert.equal((await request(baseA, apiA + '/deliveries', 'GET', ownerA)).data.find(row => row.id === dead.id).state,
+    'dead_lettered');
   failPermanent = false;
   assert.equal((await request(baseA, apiA + '/deliveries/' + dead.id + '/retry', 'POST', ownerA)).status, 202);
   await until(async () => (await request(baseA, apiA + '/deliveries', 'GET', ownerA)).data.some(row => row.id === dead.id && row.state === 'delivered'));
