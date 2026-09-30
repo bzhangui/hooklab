@@ -1,6 +1,6 @@
 # Node.js 接收方集成包（受控示例）
 
-`sdk/node/receiver.cjs` 是可直接引用的零运行时依赖验签模块，不是已经发布到 npm 的包。它与 MoonBit 出站签名共享固定测试向量，CI 的 Compose 投递测试也用它核对真实收到的两次重试。平台向接收方提供 **at least once** 投递；验签成功不等于业务恰好执行一次。
+`sdk/node/receiver.cjs` 是零运行时依赖验签模块。`sdk/node/` 现在有独立的 `package.json`、README 和 MIT 许可证，可从仓库目录离线打包/安装；**尚未发布到 npm**。运行 `npm run sdk:pack:smoke` 会在临时项目中真实执行打包、安装、固定签名向量、篡改/过期/未知密钥拒绝及包内容白名单检查。它与 MoonBit 出站签名共享固定测试向量，CI 的 Compose 投递测试也用它核对真实收到的两次重试。平台向接收方提供 **at least once** 投递；验签成功不等于业务恰好执行一次。
 
 现在还提供 `examples/receiver-durable/server.cjs`：在 Node.js 24+ 内置 SQLite 中把 `(consumer_id, delivery_id)` 唯一键与示例库存更新放在**同一事务**，并保存事件/正文指纹；进程重启后同一投递不会重复更新库存，同一投递 ID 配上不同正文返回 409。测试覆盖伪造签名、无效正文、重启去重和新事件。它是可改造的本机业务事务模式，仍不代表已获真实接收方授权或可直接公开部署。
 
@@ -22,8 +22,12 @@ node examples/receiver-node/server.cjs
 
 先在读取 JSON 之前保留 HTTP 原始字节。`headers` 传 Node.js 的 `request.headers`，`body` 传 `Buffer`，`secrets` 按公开的 `X-HookLab-Key-Id` 索引当前和过渡期旧密钥：
 
+```bash
+npm install ./sdk/node
+```
+
 ```js
-const {verifyDelivery} = require('./sdk/node/receiver.cjs');
+const {verifyDelivery} = require('@bzhangui/hooklab-receiver');
 const result = verifyDelivery({headers: request.headers, body: rawBody,
   secrets: {[currentKeyId]: currentSecret, [oldKeyId]: oldSecret}});
 if (!result.ok) return unauthorized();
