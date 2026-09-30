@@ -37,6 +37,8 @@ node scripts/check-package-contents.mjs
 
 后续维护增加 `npm run doctor`、[首个事件闭环](FIRST_EVENT.md)、精确目标主机白名单，以及可手动触发的[10/30 轮合成重复性验证](CAPACITY_PROTOCOL.md)。Node 接收方还可通过 `npm run sdk:pack:smoke` 在独立临时项目离线安装；它**未发布到 npm**，不影响 MoonBit 核心已发布到 Mooncakes 的验收事实。部署 CI 注入错误备份指纹和损坏归档，必须拒绝恢复。这些改动须以当次提交的 CI 结果为准；手动重复性工作流提供回归证据，不替代真实用户、生产容量或异地灾备结果。
 
+2026-09-30 的[主分支五作业 CI](https://github.com/bzhangui/hooklab/actions/runs/36690926781)已通过上述安装包、PostgreSQL、Windows、容器恢复和三轮完整模拟检查；另有[30 轮合成重复性运行](https://github.com/bzhangui/hooklab/actions/runs/36690781209)记录 100/100 场景组通过。两者都不是外部用户试点或生产认证，不能据此把仍列于 [生产拦截项](PRODUCTION_BOUNDARY.md) 的功能写为完成。
+
 ## 发布与独立安装核验
 
 账号 `bzhangui` 已完成注册。当前 `0.3.0-rc.5` 于 2026-09-28 发布：`moon publish --frozen` 返回 `200 OK`；`moon view bzhangui/hooklab@0.3.0-rc.5 --json` 返回 `status: success`、MIT 许可证和正确的 GitHub 仓库地址。[GitHub 预发布标签](https://github.com/bzhangui/hooklab/releases/tag/v0.3.0-rc.5)指向通过[五作业 CI](https://github.com/bzhangui/hooklab/actions/runs/36429819183)的 `04d0d08`。不要将 `~/.moon/credentials.json`、登录令牌或任何授权码提交、上传或分享。
