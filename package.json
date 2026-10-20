@@ -5,7 +5,7 @@
   "description": "PostgreSQL adapter for the MoonBit HookLab event delivery platform",
   "engines": {"node": ">=24"},
   "dependencies": {"ipaddr.js": "^2.2.0", "pg": "^8.23.0"},
-  "devDependencies": {"@electric-sql/pglite": "^0.5.8"},
+  "devDependencies": {"@electric-sql/pglite": "^0.5.10"},
   "scripts": {
     "test:platform": "node --test platform/*.test.cjs sdk/node/*.test.cjs examples/receiver-node/*.test.cjs examples/receiver-durable/*.test.cjs scripts/*.test.mjs",
     "test:platform:coverage": "node --experimental-test-coverage --test --test-coverage-include=platform/admission.cjs --test-coverage-include=platform/core.cjs --test-coverage-include=platform/migrations.cjs --test-coverage-include=platform/retention.cjs --test-coverage-lines=85 platform/*.test.cjs",
